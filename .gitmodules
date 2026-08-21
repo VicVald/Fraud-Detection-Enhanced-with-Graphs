@@ -1,0 +1,3 @@
+[submodule "gen-fraud-graph"]
+	path = gen-fraud-graph
+	url = ./gen-fraud-graph
