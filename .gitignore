@@ -1,0 +1,37 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Local Kaggle configuration and data
+.kaggle/
+data/
+
+# Agent skills
+.agents/
+
+# Model artifacts and results (large files)
+models/
+results/
+
+# UV lock file (optional - commit for reproducibility)
+# uv.lock
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
