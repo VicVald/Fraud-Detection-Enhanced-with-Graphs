@@ -57,6 +57,57 @@ def make_uid(df: pd.DataFrame) -> pd.Series:
     email = df['P_emaildomain'].fillna('null').astype(str)
     return c1 + "_" + c2 + "_" + addr + "_" + email
 
+def compute_node_features(
+    train_df: pd.DataFrame,
+    unique_uids: list[str],
+    unique_devices: list[str],
+    uid_map: dict[str, int],
+    device_map: dict[str, int],
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Compute structural node features based on node degree and transaction amounts."""
+    # Compute counts
+    user_counts = train_df['uid'].value_counts()
+    device_counts = train_df['DeviceInfo_clean'].value_counts()
+    
+    # Compute mean/std of transaction amounts
+    user_mean_amt = train_df.groupby('uid')['TransactionAmt'].mean()
+    user_std_amt = train_df.groupby('uid')['TransactionAmt'].std().fillna(0.0)
+    
+    device_mean_amt = train_df.groupby('DeviceInfo_clean')['TransactionAmt'].mean()
+    device_std_amt = train_df.groupby('DeviceInfo_clean')['TransactionAmt'].std().fillna(0.0)
+    
+    # Global training averages for missing nodes
+    global_mean_amt = train_df['TransactionAmt'].mean() if len(train_df) > 0 else 0.0
+    global_std_amt = train_df['TransactionAmt'].std() if len(train_df) > 1 else 0.0
+    if np.isnan(global_std_amt):
+        global_std_amt = 0.0
+        
+    user_x = np.zeros((len(unique_uids), 3), dtype=np.float32)
+    for i, uid in enumerate(unique_uids):
+        cnt = user_counts.get(uid, 1.0)
+        mean_a = user_mean_amt.get(uid, global_mean_amt)
+        std_a = user_std_amt.get(uid, global_std_amt)
+        user_x[i] = [np.log1p(cnt), mean_a, std_a]
+        
+    device_x = np.zeros((len(unique_devices), 3), dtype=np.float32)
+    for i, dev in enumerate(unique_devices):
+        cnt = device_counts.get(dev, 1.0)
+        mean_a = device_mean_amt.get(dev, global_mean_amt)
+        std_a = device_std_amt.get(dev, global_std_amt)
+        device_x[i] = [np.log1p(cnt), mean_a, std_a]
+        
+    # Standardize
+    user_mean = user_x.mean(axis=0)
+    user_std = user_x.std(axis=0) + 1e-9
+    user_x = (user_x - user_mean) / user_std
+    
+    device_mean = device_x.mean(axis=0)
+    device_std = device_x.std(axis=0) + 1e-9
+    device_x = (device_x - device_mean) / device_std
+    
+    return torch.tensor(user_x, dtype=torch.float), torch.tensor(device_x, dtype=torch.float)
+
+
 def compute_gnn_embeddings(
     train_df: pd.DataFrame,
     val_df: pd.DataFrame,
@@ -105,11 +156,12 @@ def compute_gnn_embeddings(
     # Construct HeteroData
     data = HeteroData()
     
-    # Node features (constant ones)
+    # Node features (degree and amount statistics)
     num_users = len(unique_uids)
     num_devices = len(unique_devices)
-    data['user'].x = torch.ones((num_users, 16), dtype=torch.float)
-    data['device'].x = torch.ones((num_devices, 16), dtype=torch.float)
+    user_x, device_x = compute_node_features(train_df, unique_uids, unique_devices, uid_map, device_map)
+    data['user'].x = user_x
+    data['device'].x = device_x
 
     # Training Edges
     train_users_idx = train_df['uid'].map(uid_map).values
@@ -131,22 +183,26 @@ def compute_gnn_embeddings(
     class HeteroGNN(nn.Module):
         def __init__(self):
             super().__init__()
-            # SageConv needs to receive a tuple of dimensions for bipartite graphs
+            # Project inputs
+            self.user_proj = nn.Linear(3, hidden_channels)
+            self.device_proj = nn.Linear(3, hidden_channels)
             self.conv1 = SAGEConv((-1, -1), hidden_channels)
             self.conv2 = SAGEConv((-1, -1), hidden_channels)
             
         def forward(self, x_dict, edge_index_dict):
+            # Project node features
+            h_user = self.user_proj(x_dict['user']).relu()
+            h_device = self.device_proj(x_dict['device']).relu()
+            x_proj = {'user': h_user, 'device': h_device}
+            
             # First layer
             h_dict = {}
-            # SAGEConv maps (source, target) to target node features
-            # ('user', 'transacts', 'device') maps user to device, so it outputs device features
             h_dict['device'] = self.conv1(
-                (x_dict['user'], x_dict['device']),
+                (x_proj['user'], x_proj['device']),
                 edge_index_dict[('user', 'transacts', 'device')]
             ).relu()
-            # ('device', 'rev_transacts', 'user') maps device to user, so it outputs user features
             h_dict['user'] = self.conv1(
-                (x_dict['device'], x_dict['user']),
+                (x_proj['device'], x_proj['user']),
                 edge_index_dict[('device', 'rev_transacts', 'user')]
             ).relu()
             
@@ -174,18 +230,43 @@ def compute_gnn_embeddings(
         optimizer.zero_grad()
         # Message passing
         z = gnn(data.x_dict, data.edge_index_dict)
-        # Classify edges
-        y_pred = classifier(z['user'], z['device'], data['user', 'transacts', 'device'].edge_index)
-        loss = F.binary_cross_entropy_with_logits(y_pred, data['user', 'transacts', 'device'].edge_label)
+        
+        # Unsupervised link prediction: positive vs negative edges
+        pos_edge_index = data['user', 'transacts', 'device'].edge_index
+        num_edges = pos_edge_index.size(1)
+        neg_devices = torch.randint(0, num_devices, (num_edges,), dtype=torch.long)
+        neg_edge_index = torch.stack([pos_edge_index[0], neg_devices], dim=0)
+        
+        pos_pred = classifier(z['user'], z['device'], pos_edge_index)
+        neg_pred = classifier(z['user'], z['device'], neg_edge_index)
+        
+        loss = F.binary_cross_entropy_with_logits(pos_pred, torch.ones_like(pos_pred)) + \
+               F.binary_cross_entropy_with_logits(neg_pred, torch.zeros_like(neg_pred))
+               
         loss.backward()
         optimizer.step()
         if verbose and (epoch + 1) % 5 == 0:
-            print(f"  GNN Epoch {epoch+1:02d}/{epochs:02d} | BCE Loss: {loss.item():.4f}")
+            print(f"  Unsupervised GNN Epoch {epoch+1:02d}/{epochs:02d} | Loss: {loss.item():.4f}")
 
-    # Extract final node embeddings
+    # Extract final node embeddings using the combined graph containing both train and val edges
+    # so that new validation nodes receive message passing connections.
+    val_data = HeteroData()
+    val_data['user'].x = user_x
+    val_data['device'].x = device_x
+    
+    val_users_idx = val_df['uid'].map(uid_map).values
+    val_devices_idx = val_df['DeviceInfo_clean'].map(device_map).values
+    
+    combined_users = np.concatenate([train_users_idx, val_users_idx])
+    combined_devices = np.concatenate([train_devices_idx, val_devices_idx])
+    combined_edge_index = torch.tensor([combined_users, combined_devices], dtype=torch.long)
+    
+    val_data['user', 'transacts', 'device'].edge_index = combined_edge_index
+    val_data = T.ToUndirected()(val_data)
+
     gnn.eval()
     with torch.no_grad():
-        z = gnn(data.x_dict, data.edge_index_dict)
+        z = gnn(val_data.x_dict, val_data.edge_index_dict)
         
     user_emb = z['user'].numpy()
     device_emb = z['device'].numpy()
@@ -266,10 +347,12 @@ def train_pure_gnn(
     # Construct HeteroData
     data = HeteroData()
     
+    # Node features (degree and amount statistics)
     num_users = len(unique_uids)
     num_devices = len(unique_devices)
-    data['user'].x = torch.ones((num_users, 16), dtype=torch.float)
-    data['device'].x = torch.ones((num_devices, 16), dtype=torch.float)
+    user_x, device_x = compute_node_features(train_df, unique_uids, unique_devices, uid_map, device_map)
+    data['user'].x = user_x
+    data['device'].x = device_x
 
     # Training Edges
     train_users_idx = train_df['uid'].map(uid_map).values
@@ -290,21 +373,30 @@ def train_pure_gnn(
     class HeteroGNN(nn.Module):
         def __init__(self):
             super().__init__()
+            # Project inputs
+            self.user_proj = nn.Linear(3, hidden_channels)
+            self.device_proj = nn.Linear(3, hidden_channels)
             self.conv1 = SAGEConv((-1, -1), hidden_channels)
             self.conv2 = SAGEConv((-1, -1), hidden_channels)
             
         def forward(self, x_dict, edge_index_dict):
+            # Project node features
+            h_user = self.user_proj(x_dict['user']).relu()
+            h_device = self.device_proj(x_dict['device']).relu()
+            x_proj = {'user': h_user, 'device': h_device}
+            
+            # First layer
             h_dict = {}
-            # SAGEConv maps (source, target) to target node features
             h_dict['device'] = self.conv1(
-                (x_dict['user'], x_dict['device']),
+                (x_proj['user'], x_proj['device']),
                 edge_index_dict[('user', 'transacts', 'device')]
             ).relu()
             h_dict['user'] = self.conv1(
-                (x_dict['device'], x_dict['user']),
+                (x_proj['device'], x_proj['user']),
                 edge_index_dict[('device', 'rev_transacts', 'user')]
             ).relu()
             
+            # Second layer
             out_dict = {}
             out_dict['device'] = self.conv2(
                 (h_dict['user'], h_dict['device']),
@@ -342,8 +434,20 @@ def train_pure_gnn(
     val_devices_idx = val_df['DeviceInfo_clean'].map(device_map).values
     val_edge_index = torch.tensor([val_users_idx, val_devices_idx], dtype=torch.long)
     
+    # Inductive evaluation: combine training and validation edges so message passing connects validation nodes
+    val_data = HeteroData()
+    val_data['user'].x = user_x
+    val_data['device'].x = device_x
+    
+    combined_users = np.concatenate([train_users_idx, val_users_idx])
+    combined_devices = np.concatenate([train_devices_idx, val_devices_idx])
+    combined_edge_index = torch.tensor([combined_users, combined_devices], dtype=torch.long)
+    
+    val_data['user', 'transacts', 'device'].edge_index = combined_edge_index
+    val_data = T.ToUndirected()(val_data)
+    
     with torch.no_grad():
-        z = gnn(data.x_dict, data.edge_index_dict)
+        z = gnn(val_data.x_dict, val_data.edge_index_dict)
         y_score_logits = classifier(z['user'], z['device'], val_edge_index)
         y_score = torch.sigmoid(y_score_logits).numpy()
         

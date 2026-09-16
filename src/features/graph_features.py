@@ -61,27 +61,23 @@ def compute_graph_features(
     in_degree = dict(G.in_degree())
     out_degree = dict(G.out_degree())
 
-    # 4. Compute Neighborhood Fraud Rate
-    # Track fraud counts and total counts per account in train_df
+    # 4. Compute Neighborhood Fraud Rate with Leave-One-Out (LOO) and smoothing
+    # We fit the historical fraud counts per account from train_df.
     if verbose:
-        print("Computing neighborhood fraud rates...")
+        print("Computing neighborhood fraud rates (with Leave-One-Out & smoothing to prevent leakage)...")
     
-    account_fraud_counts = {}
-    account_total_counts = {}
+    global_mean = train_df['isFraud'].mean() if 'isFraud' in train_df else 0.0
+    m = 10.0 # smoothing parameter
     
-    for _, row in train_df.iterrows():
-        src = row["src_id"]
-        dst = row["dst_id"]
-        is_fraud = int(row["isFraud"])
-        
-        for acc in (src, dst):
-            account_total_counts[acc] = account_total_counts.get(acc, 0) + 1
-            account_fraud_counts[acc] = account_fraud_counts.get(acc, 0) + is_fraud
-
-    account_fraud_rate = {
-        acc: account_fraud_counts[acc] / account_total_counts[acc]
-        for acc in account_total_counts
-    }
+    # Calculate counts per account in train_df
+    # An account can be either src_id or dst_id. We sum their occurrences.
+    src_counts = train_df['src_id'].value_counts()
+    dst_counts = train_df['dst_id'].value_counts()
+    account_total_counts = src_counts.add(dst_counts, fill_value=0).to_dict()
+    
+    src_fraud = train_df.groupby('src_id')['isFraud'].sum()
+    dst_fraud = train_df.groupby('dst_id')['isFraud'].sum()
+    account_fraud_counts = src_fraud.add(dst_fraud, fill_value=0).to_dict()
 
     # 4.1 Compute Strongly Connected Component (SCC) sizes
     if verbose:
@@ -113,19 +109,30 @@ def compute_graph_features(
     # Default values for unseen nodes (e.g. in validation set)
     default_pagerank = 1.0 / max(num_nodes, 1)
     default_degree = 0.0
-    default_fraud_rate = 0.0
     default_scc_size = 1.0
     default_flow_ratio = 1.0
     default_amount_std = 0.0
 
-    def get_features_for_df(df: pd.DataFrame) -> pd.DataFrame:
+    def get_features_for_df(df: pd.DataFrame, is_train: bool) -> pd.DataFrame:
         df = df.copy()
         
         # Source features
         df["src_pagerank"] = df["src_id"].map(pagerank).fillna(default_pagerank)
         df["src_in_degree"] = df["src_id"].map(in_degree).fillna(default_degree)
         df["src_out_degree"] = df["src_id"].map(out_degree).fillna(default_degree)
-        df["src_neigh_fraud_rate"] = df["src_id"].map(account_fraud_rate).fillna(default_fraud_rate)
+        
+        # Target encoding with LOO for train, standard for val
+        if is_train and "isFraud" in df.columns:
+            src_totals = df["src_id"].map(account_total_counts).fillna(0.0)
+            src_frauds = df["src_id"].map(account_fraud_counts).fillna(0.0)
+            src_totals_prior = (src_totals - 1.0).clip(lower=0.0)
+            src_frauds_prior = (src_frauds - df["isFraud"].astype(float)).clip(lower=0.0)
+            df["src_neigh_fraud_rate"] = (src_frauds_prior + global_mean * m) / (src_totals_prior + m)
+        else:
+            src_totals = df["src_id"].map(account_total_counts).fillna(0.0)
+            src_frauds = df["src_id"].map(account_fraud_counts).fillna(0.0)
+            df["src_neigh_fraud_rate"] = (src_frauds + global_mean * m) / (src_totals + m)
+            
         df["src_scc_size"] = df["src_id"].map(scc_sizes).fillna(default_scc_size)
         df["src_flow_ratio"] = df["src_id"].map(flow_ratios).fillna(default_flow_ratio)
         df["src_amount_std"] = df["src_id"].map(amount_std).fillna(default_amount_std)
@@ -134,7 +141,18 @@ def compute_graph_features(
         df["dst_pagerank"] = df["dst_id"].map(pagerank).fillna(default_pagerank)
         df["dst_in_degree"] = df["dst_id"].map(in_degree).fillna(default_degree)
         df["dst_out_degree"] = df["dst_id"].map(out_degree).fillna(default_degree)
-        df["dst_neigh_fraud_rate"] = df["dst_id"].map(account_fraud_rate).fillna(default_fraud_rate)
+        
+        if is_train and "isFraud" in df.columns:
+            dst_totals = df["dst_id"].map(account_total_counts).fillna(0.0)
+            dst_frauds = df["dst_id"].map(account_fraud_counts).fillna(0.0)
+            dst_totals_prior = (dst_totals - 1.0).clip(lower=0.0)
+            dst_frauds_prior = (dst_frauds - df["isFraud"].astype(float)).clip(lower=0.0)
+            df["dst_neigh_fraud_rate"] = (dst_frauds_prior + global_mean * m) / (dst_totals_prior + m)
+        else:
+            dst_totals = df["dst_id"].map(account_total_counts).fillna(0.0)
+            dst_frauds = df["dst_id"].map(account_fraud_counts).fillna(0.0)
+            df["dst_neigh_fraud_rate"] = (dst_frauds + global_mean * m) / (dst_totals + m)
+            
         df["dst_scc_size"] = df["dst_id"].map(scc_sizes).fillna(default_scc_size)
         df["dst_flow_ratio"] = df["dst_id"].map(flow_ratios).fillna(default_flow_ratio)
         df["dst_amount_std"] = df["dst_id"].map(amount_std).fillna(default_amount_std)
@@ -143,8 +161,8 @@ def compute_graph_features(
 
     if verbose:
         print("Mapping graph features back to DataFrames...")
-    train_aug = get_features_for_df(train_df)
-    val_aug = get_features_for_df(val_df)
+    train_aug = get_features_for_df(train_df, is_train=True)
+    val_aug = get_features_for_df(val_df, is_train=False)
 
     if verbose:
         print("Graph feature enrichment complete.")
