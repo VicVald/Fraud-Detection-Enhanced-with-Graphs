@@ -1,156 +1,193 @@
-# TG-graph — Synthetic Fraud Graph ML Pipeline
+# TG-graph — Engenharia de Grafos Bipartidos e Compressão Espectral na Detecção de Fraudes em E-Commerce
 
-A project dedicated to improving traditional machine learning systems for real-time fraud detection by enriching them with graph-structured features. This project leverages Santander's `gen-fraud-graph` to generate synthetic transaction logs, constructs bipartite graphs using NetworkX to derive structural network features, and trains XGBoost/LightGBM classifiers with optional GNN embeddings.
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Benchmark: IEEE-CIS](https://img.shields.io/badge/Dataset-IEEE--CIS%20Fraud%20Detection-orange.svg)](https://www.kaggle.com/c/ieee-fraud-detection)
 
----
+Este repositório contém o código-fonte, a suíte experimental de ablação, os notebooks e a monografia completa/artigo do Trabalho de Conclusão de Curso (TCC) intitulado:
 
-## How It Works
-
-```mermaid
-graph TD
-    A[gen-fraud-graph] -->|Synthetic Accounts & Transactions| B[Data Ingestion: load.py]
-    B -->|Merged Data Pool| C[Temporal Split: split.py]
-    C -->|Train Split| D[Graph Construction & Feature Computation: graph_features.py]
-    C -->|Val Split| E[Map Graph Features from Train Graph]
-    D -->|Tabular + Graph features| F[Identity Routing split]
-    E -->|Tabular + Graph features| F
-    F -->|Model A input| G[Model A: No Account Identity]
-    F -->|Model B input| H[Model B: With Account Identity]
-    G -->|Predict Probabilities| I[Verification & Evaluation: metrics.py]
-    H -->|Predict Probabilities| I
-```
-
-### 1. Data Generation (`src/data/generate_data.py`)
-Uses Santander's `gen-fraud-graph` library to programmatically generate account nodes and transaction edges. We set the embedding dimension to 2 for fake text embeddings to prevent costly array serialization.
-
-### 2. Features Engineering (`src/features/graph_features.py`)
-Constructs a directed transaction network from the training split and calculates:
-- **Node Degree (In/Out)**: The volume of incoming and outgoing transaction relations.
-- **PageRank Centrality**: Evaluates the global structural importance of accounts in the transaction flow.
-- **Neighborhood Fraud Rate**: The historical fraction of fraud transactions that touch the node.
-
-To ensure **no data leakage**, all graph metrics are fitted on the training split transaction graph and mapped onto both splits. Unseen nodes in the validation set receive default values.
-
-### 3. Model Training (`main.py`)
-Splits the transactions into train and validation sets, partitions them into Group A (even account IDs) and Group B (odd account IDs) to simulate identity-routing sub-models, trains XGBoost/LightGBM classifiers, and runs the validation verification suite.
-
-### 4. GNN Embeddings (`src/features/gnn_features.py`)
-Computes Node2Vec/GraphSAGE embeddings on the transaction graph to capture higher-order structural patterns. These embeddings can be used as additional features (`--features augmented_gnn`) or as a standalone GNN model (`--model gnn`).
+> **"Engenharia de Grafos Bipartidos e Compressão Espectral na Detecção de Fraudes em E-Commerce: Um Estudo de Ablação e Decomposição Estrutural"**  
+> **Autor:** Victor Valadares  
+> **Área:** Inteligência Artificial, Ciência de Dados e Engenharia de Software  
 
 ---
 
-## Installation & Setup
+## 📌 Documentos e Monografia
 
-1. Install dependencies and the generator in editable mode:
-   ```bash
-   uv pip install -e ./gen-fraud-graph
-   ```
-2. Generate the synthetic transactions:
-   ```bash
-   uv run python src/data/generate_data.py --scale 0.01 --output data/raw
-   ```
+* 📄 **Monografia Completa / Artigo (PDF):** [`LOCAL_COMPLETE_PAPER.pdf`](LOCAL_COMPLETE_PAPER.pdf) *(3,13 MB, com diagramação acadêmica, fórmulas MathJax e figuras em alta resolução)*
+* 📝 **Artigo em Markdown:** [`LOCAL_COMPLETE_PAPER.md`](LOCAL_COMPLETE_PAPER.md)
+* 🌐 **Artigo em HTML Renderizado:** [`LOCAL_COMPLETE_PAPER.html`](LOCAL_COMPLETE_PAPER.html)
+* 📊 **Relatório Metodológico dos Notebooks:** [`docs/RELATORIO_METODOLOGICO_NOTEBOOKS.md`](docs/RELATORIO_METODOLOGICO_NOTEBOOKS.md)
 
 ---
 
-## Pipeline Usage
+## 🔬 Visão Geral do Trabalho
 
-### Run Tabular Baseline Model
-Train XGBoost models using only account and transaction attributes (amount, balance, risk score):
-```bash
-uv run python main.py --features tabular
+Classificadores tabulares padrão baseados em *Gradient Boosted Decision Trees* (XGBoost/LightGBM) operam sob a premissa de que as transações são **Independentes e Identicamente Distribuídas (IID)**. No entanto, o cibercrime contemporâneo atua por meio de **ataques coordenados em rede** (*fraud rings*, *botnets* e fazendas de emuladores que reutilizam o mesmo hardware físico para testar múltiplos cartões roubados).
+
+Este projeto desenvolve uma arquitetura híbrida de detecção de fraudes em esteiras de baixa latência, combinando:
+1. **Resolução Determinística de Entidades (UID):** Ancoragem no calendário civil $\text{UID} = \text{card1} \;\Vert\; \text{addr1} \;\Vert\; \lfloor \text{timestamp}/86.400 - D1 \rfloor$, expandindo o espaço amostral de $12.730$ nós bancários artificiais para **$182.347$ portadores únicos reais** ($14,3\times$ em granularidade).
+2. **Grafo Bipartido Portador $\leftrightarrow$ Dispositivo:** Formalizado como $\mathcal{G} = (\mathcal{U}, \mathcal{V}, \mathcal{E})$ com poda de nós sentinela nulos e projeção unipartida $\mathbf{A}_{\mathcal{U}} = \mathbf{B}\mathbf{B}^\top$, onde caminhos de comprimento 2 ($u_i \leftrightarrow v_k \leftrightarrow u_j$) identificam conluios de hardware compartilhado.
+3. **Algoritmo de Velocidade Temporal em $\mathcal{O}(N \log K)$:** Contador de transações em janelas deslizantes de 24h via busca binária causal vetorizada (`np.searchsorted`), processando as **590.540 transações integrais em apenas 1,13 segundo**.
+4. **Compressão Espectral PCA:** Redução das 339 variáveis colineares Vesta ($V$) para 15 componentes ortogonais, reduzindo o tempo de treino em **55,4%** (de 81,6s para 36,4s) e melhorando a generalização (ROC-AUC de 0,8641 para 0,8922 no modelo integrado).
+5. **Roteamento Dual de Identidade (Model A / Model B):** Desacoplamento entre compras sem dados de hardware (Model A: fallback operacional com cobertura de 100%) e compras com identidade (Model B: especialista com métricas de PageRank e graus de rede).
+6. **Matrizes Assimétricas e Risco Mínimo de Bayes:** Otimização financeira da regra de corte $\tau^*$ contra custos reais de *chargeback* ($C_{\text{chargeback}} = \text{US\$} 15,00$) e atrito de revisão manual ($C_{\text{revisão}} = \text{US\$} 3,00$).
+
+---
+
+## 🏛️ Arquitetura do Sistema
+
 ```
-
-### Run Graph-Augmented Model
-Train XGBoost models augmented with NetworkX graph-structured features (PageRank, degree, fraud rate):
-```bash
-uv run python main.py --features augmented
-```
-
-### Run GNN-Augmented Model
-Train LightGBM/XGBoost models augmented with GNN embeddings (Node2Vec/GraphSAGE):
-```bash
-uv run python main.py --features augmented_gnn --model lgbm
-```
-
-### Run Pure GNN Model (IEEE-CIS dataset)
-Train a standalone Graph Neural Network on the transaction graph:
-```bash
-uv run python main.py --model gnn --dataset ieee
-```
-
-### Use Synthetic Dataset with Different Hardness Levels
-```bash
-uv run python main.py --dataset synthetic --hardness low
-uv run python main.py --dataset synthetic --hardness medium
-uv run python main.py --dataset synthetic --hardness high
-```
-
-### Use IEEE-CIS Real-World Dataset
-```bash
-uv run python main.py --dataset ieee --sample 0.1
+                      INGESTÃO INTEGRAL (N = 590.540)
+                                     │
+                 ┌───────────────────┴───────────────────┐
+                 ▼                                       ▼
+       Treino Histórico (80%)                  Validação Temporal (20%)
+    N = 472.432 (Dias 1 a 140)               N = 118.108 (Dias 141 a 182)
+                 │                                       │
+                 ├───────────────────────────────────────┤
+                 ▼                                       ▼
+     [Resolução de Entidades]                [Grafo Retrospectivo Estrito]
+       UID Composto Calendário                  Poda de Nós Sentinela Nulos
+       182.347 Portadores Reais                 Isolamento Anti-Topology Leakage
+                 │                                       │
+                 ├───────────────────────────────────────┤
+                 ▼                                       ▼
+     [Compressão Espectral PCA]              [Velocidade Causal O(N log K)]
+       339 Vesta V ──> 15 PCA                  Janelas Deslizantes de 24h
+       -55,4% Tempo de Treino                  Busca Binária Vetorizada
+                 │                                       │
+                 └───────────────────┬───────────────────┘
+                                     ▼
+                      ROTEAMENTO DUAL DE IDENTIDADE
+                                     │
+                 ┌───────────────────┴───────────────────┐
+                 ▼                                       ▼
+     [Model A: Sem Identidade]               [Model B: Com Identidade]
+      Fallback Transacional                   Especialista em Grafos
+      Cobertura: 100% da População            PageRank & Graus de Hardware
+                 │                                       │
+                 └───────────────────┬───────────────────┘
+                                     ▼
+                          DECISÃO DE RISCO DE BAYES
+                          Otimização de Limiar tau*
+                          Maximização de Economia Liq.
 ```
 
 ---
 
-## Command Line Arguments
+## 📊 Resultados do Estudo de Ablação (100% dos Dados)
 
-| Argument | Options | Default | Description |
-|----------|---------|---------|-------------|
-| `--model` | `xgb`, `lgbm`, `gnn` | `xgb` | Classifier algorithm |
-| `--features` | `tabular`, `augmented`, `augmented_gnn` | `tabular` | Feature set to use |
-| `--dataset` | `synthetic`, `ieee` | `synthetic` | Dataset to load |
-| `--hardness` | `low`, `medium`, `high` | `low` | Synthetic data difficulty |
-| `--seed` | integer | `42` | Random seed |
-| `--sample` | float (0-1) | None | Data fraction for testing |
+Experimentos conduzidos sobre a partição temporal do benchmark IEEE-CIS ($N_{\text{total}} = 590.540$; $N_{\text{val}} = 118.108$):
+
+| ID | Configuração Metodológica | Features (B) | Treino (s) | PR-AUC | ROC-AUC | F1-Score | Perda Financeira ($L(\tau^*)$) | Recall (Rede) |
+|:---:|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **0** | Sem Modelo (Aprovação Cega) | — | — | — | — | — | US$ 670.894,34 | 0,00% |
+| **1A** | Baseline Raw (Sem PCA, 339 V) | 430 | 81,6s | 0,5100 | **0,8915** | 0,5351 | US$ 325.073,39 | 74,47% |
+| **1B** | Baseline Com PCA (15-d) | 106 | **36,4s** | 0,4950 | 0,8912 | 0,5159 | US$ 325.726,95 | 75,37% |
+| **2** | Baseline + Topologia de Grafo | 108 | 37,2s | 0,4964 | 0,8911 | 0,5232 | **US$ 321.913,83** | 76,01% |
+| **3** | Baseline + Velocidade Causal 24h | 108 | 38,1s | 0,5039 | 0,8914 | 0,5266 | US$ 324.960,63 | 75,47% |
+| **4** | Baseline + Grafos Completos | 110 | 39,0s | 0,5050 | 0,8913 | 0,5279 | US$ 322.479,44 | 76,04% |
+| **5** | Baseline + Feature Engineering Tabular | 121 | 43,8s | 0,5526 | 0,8888 | 0,5513 | US$ 375.409,24 | 78,54% |
+| **6A** | **All-in-One Proposto (Com PCA 15-d)** | **125** | **44,6s** | **0,5563** | **0,8922** | **0,5553** | US$ 378.925,44 | **79,18%** |
+| **6B** | All-in-One (Sem PCA / 339 V Brutas) | 449 | 91,9s | 0,5550 | 0,8901 | 0,5547 | US$ 359.010,90 | 78,89% |
+
+### Principais Destaques Empíricos:
+* **Ganhos em Redes de Conluio:** O modelo *All-in-One* elevou a taxa de captura (*Recall*) sobre conluios de hardware compartilhado de **75,37% para 79,18% (+3,81 p.p.)**.
+* **Impacto da Compressão PCA:** A redução dimensional cortou **55,4% do tempo de treino** e elevou o ROC-AUC global para **0,8922**.
+* **Economia Operacional:** Os modelos baseados em grafos reduziram as perdas operacionais para US$ 321.913, gerando economia líquida de mais de **US$ 348 mil** sobre a aprovação cega.
 
 ---
 
-## Jupyter Notebooks
+## 🖼️ Galeria de Figuras
 
-We provide two Jupyter Notebooks in the `notebooks/` directory to help analyze the data and experiment interactively:
+Todas as figuras foram geradas na pasta [`figures/`](figures/) em 300 DPI, obedecendo ao padrão estrito de 1 gráfico por figura:
 
-1. **[01_eda_and_feature_selection.ipynb](file:///home/victor/Documents/TG-graph/notebooks/01_eda_and_feature_selection.ipynb)**: Performs Exploratory Data Analysis on the synthetic accounts and transactions, computes class imbalance, visualizes distributions, and saves the initial feature lists.
-2. **[02_model_and_verification.ipynb](file:///home/victor/Documents/TG-graph/notebooks/02_model_and_verification.ipynb)**: Implements the baseline GBDT model training step-by-step, performs identity routing, runs the verification suite, plots Precision-Recall curves, and computes SHAP value importances.
+* [`fig1_temporal_fraud_raw_volume.png`](figures/fig1_temporal_fraud_raw_volume.png) — Volume financeiro bruto e taxa temporal de fraude.
+* [`fig2_v_collinearity_pca.png`](figures/fig2_v_collinearity_pca.png) — Matriz de correlação densa das 339 variáveis Vesta ($V$).
+* [`fig3_entity_resolution_card_vs_uid.png`](figures/fig3_entity_resolution_card_vs_uid.png) — Distribuição log-log (CCDF) da resolução de entidades (`card1` vs UID).
+* [`fig4_device_sharing_fraud_rings.png`](figures/fig4_device_sharing_fraud_rings.png) — Taxa de fraude vs quantidade de UIDs por dispositivo físico.
+* [`fig5_velocity_burstiness_kde.png`](figures/fig5_velocity_burstiness_kde.png) — Curvas KDE de intervalo $\Delta t$ entre transações (legítimas vs rajadas criminosas).
+* [`fig6_structuring_and_productcd.png`](figures/fig6_structuring_and_productcd.png) — Fracionamento de valores e taxas de fraude por `ProductCD`.
+* [`fig7_bipartite_pagerank_dist.png`](figures/fig7_bipartite_pagerank_dist.png) — Densidade de probabilidade estacionária do PageRank bipartido.
+* [`fig8_financial_dispersion_boxplots.png`](figures/fig8_financial_dispersion_boxplots.png) — Boxplots de desvio relativo do ticket ($Z$-Score) por portador.
+* [`fig9_ablation_pr_roc_curves.png`](figures/fig9_ablation_pr_roc_curves.png) — Curvas Precision-Recall comparativas do estudo de ablação.
+* [`fig10_cost_and_typology_breakdown.png`](figures/fig10_cost_and_typology_breakdown.png) — Curvas de perda operacional $L(\tau)$ sob matriz assimétrica de Bayes.
 
-To run the notebooks:
+---
+
+## 💻 Instalação e Execução
+
+### 1. Pré-requisitos e Ambiente
+Recomenda-se o uso do gerenciador [`uv`](https://github.com/astral-sh/uv) para velocidade e reprodutibilidade:
+
 ```bash
-uv run jupyter notebook
+# Clonar o repositório
+git clone https://github.com/VictorValadares/TG-graph.git
+cd TG-graph
+
+# Criar ambiente virtual e instalar dependências
+uv venv
+source .venv/bin/activate
+uv pip install -r requirements.txt # ou pyproject.toml
+```
+
+### 2. Download do Benchmark IEEE-CIS
+Coloque os arquivos `train_transaction.csv` e `train_identity.csv` na pasta `data/raw/ieee-fraud-detection/`.
+
+### 3. Execução do Pipeline Completo (100% dos Dados)
+Para rodar a ablação completa de 8 configurações e persistir os resultados em `results/100percent/`:
+```bash
+python3 scripts/run_100percent_pipeline.py
+```
+
+### 4. Regenerar Figuras em Alta Resolução
+```bash
+python3 scripts/generate_all_single_figures.py
+```
+
+### 5. Compilar a Monografia em PDF
+Requer Node.js e Puppeteer para renderização fiel de MathJax e Markdown:
+```bash
+uv run --with "markdown,pymdown-extensions" python3 scripts/export_paper_to_pdf.py
 ```
 
 ---
 
-## Project Structure
+## 📓 Suíte de Jupyter Notebooks (`notebooks/`)
+
+1. **`01_eda_and_feature_selection.ipynb`**: Análise exploratória e colinearidade das variáveis Vesta.
+2. **`02_model_and_verification.ipynb`**: Baseline tabular e suite de verificação de métricas.
+3. **`03_synthetic_graph_features.ipynb`**: Prototipação de métricas de rede em grafos sintéticos.
+4. **`04_ablation_with_vs_without_graphs_colab.ipynb`**: Estudo comparativo de ablação de grafos vs tabular.
+5. **`05_fraud_typology_cost_function_analysis.ipynb`**: Análise por tipologia de ataque e otimização de custo de Bayes.
+6. **`06_walk_forward_temporal_ablation_colab.ipynb`**: Validação temporal *walk-forward* em múltiplas janelas.
+7. **`07_hyperparameter_tuning_and_significance_colab.ipynb`**: Ajuste fino e testes de significância estatística.
+
+---
+
+## 📁 Estrutura do Repositório
 
 ```
 TG-graph/
-├── src/
-│   ├── data/           # Data download and generation
-│   ├── features/       # Feature engineering (tabular, graph, GNN)
-│   ├── models/         # Model training (baseline XGB/LGBM)
-│   └── evaluation/     # Metrics and verification suite
-├── gen-fraud-graph/    # Submodule: Santander synthetic data generator
-├── notebooks/          # Jupyter notebooks for EDA and modeling
-├── scripts/            # Utility scripts (Kaggle setup, notebook adaptation)
-├── docs/adr/           # Architecture Decision Records
-├── main.py             # CLI entry point
-├── pyproject.toml      # Project configuration
-└── README.md           # This file
+├── figures/              # 10 Figuras em alta resolução (300 DPI) para o artigo
+├── results/100percent/   # CSVs de métricas, custos e predições com 100% dos dados
+├── notebooks/            # Suíte de 7 Jupyter Notebooks experimentais
+├── src/                  # Módulos Python (ingestão, features de grafo, modelos, métricas)
+│   ├── data/             # Ingestão e resolução de entidades UID
+│   ├── features/         # Features tabulares, grafos NetworkX e PCA
+│   ├── models/           # XGBoost / LightGBM e Roteamento Dual
+│   └── evaluation/       # PR-AUC, ROC-AUC, curvas de custo e matrizes de confusão
+├── scripts/              # Scripts de automação, pipelines e exportação de PDF
+├── docs/                 # Relatórios metodológicos e decisões de arquitetura
+├── LOCAL_COMPLETE_PAPER.md   # Artigo completo em Markdown
+├── LOCAL_COMPLETE_PAPER.pdf  # Monografia / Artigo compilado em PDF (3,13 MB)
+├── pyproject.toml        # Metadados e dependências do projeto
+└── README.md             # Este documento
 ```
 
 ---
 
-## Evaluation
+## 📜 Licença
 
-Primary metric: **PR-AUC** (Precision-Recall Area Under Curve) due to highly imbalanced fraud data.
-
-The verification suite (`src/evaluation/metrics.py`) reports:
-- Overall PR-AUC and ROC-AUC
-- Per-group metrics (Group A: no identity, Group B: with identity)
-- Temporal stability checks
-- Calibration plots
-
----
-
-## License
-
-MIT License - see [LICENSE](LICENSE) for details.
+Distribuído sob a licença **MIT**. Consulte `LICENSE` para mais detalhes.

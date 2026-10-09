@@ -6,6 +6,7 @@ from src.features import (
     load_train,
     load_ieee_train,
     temporal_split,
+    random_split,
     drop_high_null_cols,
     drop_near_zero_variance,
     get_categorical_cols,
@@ -30,8 +31,9 @@ def run_baseline(
     hardness: str = "low",
     dataset: str = "synthetic",
     sample: float | None = None,
+    split_type: str = "temporal",
 ):
-    print(f"--- Running Model Pipeline (Seed={seed}, Dataset={dataset}, Model={model_type}, Features={features_type}) ---")
+    print(f"--- Running Model Pipeline (Seed={seed}, Dataset={dataset}, Split={split_type}, Model={model_type}, Features={features_type}) ---")
 
     # 1. Load data
     if dataset == "ieee":
@@ -43,8 +45,11 @@ def run_baseline(
         data_dir = Path("data") / f"raw{hardness_suffix}"
         df = load_train(data_dir=data_dir, verbose=True)
 
-    # 2. Temporal split
-    train_df, val_df = temporal_split(df, verbose=True)
+    # 2. Split
+    if split_type == "random":
+        train_df, val_df = random_split(df, seed=seed, verbose=True)
+    else:
+        train_df, val_df = temporal_split(df, verbose=True)
 
     # If augmented or augmented_gnn, compute graph features
     if features_type in ["augmented", "augmented_gnn"]:
@@ -129,6 +134,8 @@ def run_baseline(
         
         print("\n--- Saving Artifacts ---")
         suffix = f"{dataset}" if dataset == "ieee" else f"{dataset}_{hardness}"
+        if split_type != "temporal":
+            suffix += f"_{split_type}"
         save_metrics(results, f"results/metrics_{features_type}_{model_type}_{suffix}.json")
         return
 
@@ -179,6 +186,8 @@ def run_baseline(
     # 9. Save models and metrics
     print("\n--- Saving Artifacts ---")
     suffix = f"{dataset}" if dataset == "ieee" else f"{dataset}_{hardness}"
+    if split_type != "temporal":
+        suffix += f"_{split_type}"
     ext = "pkl" if model_type == "lgbm" else "json"
     save(model_a, f"models/model_a_{features_type}_{model_type}_{suffix}.{ext}", verbose=True)
     save(model_b, f"models/model_b_{features_type}_{model_type}_{suffix}.{ext}", verbose=True)
@@ -222,6 +231,14 @@ def main():
         default=None,
         help="Fraction of data to sample (0.0 to 1.0) for rapid testing",
     )
+    parser.add_argument(
+        "--split-type",
+        dest="split_type",
+        type=str,
+        default="temporal",
+        choices=["temporal", "random"],
+        help="Data split strategy: 'temporal' (time-based) or 'random' (stratified random)",
+    )
 
     args = parser.parse_args()
 
@@ -232,6 +249,7 @@ def main():
         hardness=args.hardness,
         dataset=args.dataset,
         sample=args.sample,
+        split_type=args.split_type,
     )
 
 

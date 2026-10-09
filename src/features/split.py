@@ -10,12 +10,57 @@ from __future__ import annotations
 
 import pandas as pd
 
+from sklearn.model_selection import train_test_split
+
 from .preprocessing import ALWAYS_EXCLUDE, IDENTITY_COLS
 
 
 # ---------------------------------------------------------------------------
-# Temporal split
+# Splits
 # ---------------------------------------------------------------------------
+
+
+def random_split(
+    df: pd.DataFrame,
+    boundary: float = 0.8,
+    seed: int = 42,
+    stratify: bool = True,
+    verbose: bool = True,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Split *df* into training and validation sets randomly (optionally stratified by isFraud).
+
+    Parameters
+    ----------
+    df:
+        Full merged DataFrame.
+    boundary:
+        Percentile boundary to split on (default 0.80).
+    seed:
+        Random state seed.
+    stratify:
+        Whether to stratify by isFraud if present.
+    verbose:
+        Whether to print split statistics.
+
+    Returns
+    -------
+    (train_df, val_df)
+    """
+    stratify_target = df["isFraud"] if (stratify and "isFraud" in df.columns) else None
+    train_df, val_df = train_test_split(
+        df,
+        train_size=boundary,
+        random_state=seed,
+        stratify=stratify_target,
+    )
+    train_df = train_df.reset_index(drop=True)
+    val_df = val_df.reset_index(drop=True)
+
+    if verbose:
+        print("[split] random stratified split:" if stratify_target is not None else "[split] random split:")
+        _print_split_stats(train_df, val_df)
+
+    return train_df, val_df
 
 
 def temporal_split(
