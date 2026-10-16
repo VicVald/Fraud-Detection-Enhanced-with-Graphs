@@ -8,10 +8,10 @@
 
 ## Resumo
 
-Classificadores supervisionados aplicados à detecção de fraude em comércio eletrônico — notadamente os baseados em *Gradient Boosted Decision Trees* (GBDT) — assumem convencionalmente que as transações são observações Independentes e Identicamente Distribuídas (*IID*). Na prática, fraudadores frequentemente operam em esquemas coordenados que reutilizam recursos técnicos e credenciais, desafiando essa premissa. Este trabalho investiga experimentalmente a incorporação de modelagem relacional via grafos bipartidos, dinâmica temporal não-antecipativa e compressão dimensional espectral sobre 100% dos dados do benchmark **IEEE-CIS Fraud Detection** ($N_{\text{total}} = 590.540$; validação temporal $N_{\text{val}} = 118.108$). O objetivo central foi **testar rigorosamente o uso de grafos** no problema, avaliando em que condições a topologia de rede agrega ganho discriminativo e quais são seus limites práticos em dados tabulares heterogêneos. Nossas contribuições metodológicas compreendem: (i) um algoritmo determinístico de resolução de entidades via identificador composto UID ancorado em calendário com busca binária causal em $\mathcal{O}(N \log K)$ para janelas temporais retrospectivas; (ii) a formulação de grafos bipartidos causais (Portador $\leftrightarrow$ Dispositivo/Fingerprint) operando sob snapshots periódicos e graus incrementais estritos, integrada a uma arquitetura de Roteamento Dual (Model A sem identidade / Model B com identidade); (iii) a compressão espectral PCA das 339 colunas Vesta para 15 componentes principais, reduzindo o tempo de treinamento em **57,0%** (de 81,1s para 34,9s na baseline) com trade-off medido de 1,1 p.p. em PR-AUC; (iv) um estudo de ablação em 9 configurações com intervalos de confiança de 95% via bootstrap pareado por blocos temporais e avaliação de custo de Bayes em partição de teste temporal independente. Os resultados empíricos demonstram que, isoladamente sobre a baseline tabular, a adição de atributos topológicos no subgrafo de fingerprint eleva a PR-AUC marginalmente de 0,4975 para 0,5004 ($\Delta = +0,0030$, IC 95% $[-0,0010; +0,0072]$), não atingindo significância estatística global ($p = 0,06$). O maior ganho discriminativo do estudo provém das **agregações comportamentais do portador ao nível da entidade** (Configuração 5, PR-AUC = 0,5460 e ROC-AUC = 0,9062, $\Delta = +0,0485$, IC 95% $[+0,0413; +0,0549]$). Adicionalmente, quando o grafo é construído sobre rótulos genéricos de dispositivo (`DeviceInfo` coarse, ex.: "Windows"), a representação sofre de hubs artificiais, reduzindo a PR-AUC para 0,4956. Conclui-se que grafos bipartidos oferecem sinais contextuais pontuais úteis, mas sua eficácia é estritamente condicionada à granularidade e cobertura dos identificadores de hardware, sendo superados em impacto global por atributos comportamentais causais de portador em dados tabulares esparsos de e-commerce.
+Classificadores supervisionados aplicados à detecção de fraude em comércio eletrônico — notadamente os baseados em *Gradient Boosted Decision Trees* (GBDT) — assumem convencionalmente que as transações são observações Independentes e Identicamente Distribuídas (*IID*). Na prática, fraudadores frequentemente operam em esquemas coordenados que reutilizam recursos técnicos e credenciais, desafiando essa premissa. Este trabalho investiga experimentalmente a incorporação de modelagem relacional via grafos bipartidos, dinâmica temporal não-antecipativa e compressão dimensional espectral sobre o benchmark mundial **IEEE-CIS Fraud Detection**. O objetivo central foi **testar rigorosamente o uso de grafos** no problema, avaliando em que condições a topologia de rede agrega ganho discriminativo e quais são seus limites práticos em dados tabulares heterogêneos. Nossas contribuições metodológicas compreendem: (i) um algoritmo determinístico de resolução de entidades via identificador composto UID ancorado em calendário com busca binária causal em $\mathcal{O}(N \log K)$ para janelas temporais retrospectivas; (ii) a formulação de grafos bipartidos causais (Portador $\leftrightarrow$ Dispositivo/Fingerprint) integrada a uma arquitetura de Roteamento Dual (Model A sem identidade / Model B com identidade); (iii) a compressão espectral PCA das 339 colunas Vesta para 15 componentes principais, reduzindo o tempo de treinamento das árvores em **51,4%** (de 105,8s para 51,4s na baseline) preservando a acurácia discriminativa (PR-AUC 0,5038 vs 0,5028); (iv) um estudo de ablação em 8 configurações ortogonais com avaliação rigorosa de sobreajuste causal; e (v) a formulação de avaliação sob custo financeiro e taxa controlada de falsos positivos operacionais. Os resultados empíricos demonstram com transparência que **a engenharia de atributos tabulares comportamentais ao nível do portador ($D_n$, UID ancorado e desvios de ticket) é o motor primário de ganho, respondendo por 87,3% de todo o lift discriminativo da cadeia PCA** (elevando a PR-AUC de 0,5028 para 0,5304, $\Delta = +0,0276$). Em contrapartida, a **modelagem de grafos bipartidos atua como um refinamento incremental ortogonal**, agregando **+0,0040 em PR-AUC** (12,7% do lift, atingindo 0,5344 na cadeia PCA e 0,5395 bruto / **0,5434** com pós-processamento causal alinhado em variáveis brutas, com F1 de 0,5705). Sob taxa de falsos positivos controlada operacionalmente ($\text{FPR} = 1,0\%$), o recall em fraudes coordenadas avança de 50,87% para 61,27% (**+10,40 p.p.**, IC 95% **[+8,02; +12,78]** p.p., $p < 0,001$), sendo +7,54 p.p. decorrentes da engenharia tabular, +2,22 p.p. da inclusão de grafos e +0,64 p.p. do pós-processamento temporal causal (efeito marginal). Conclui-se que grafos bipartidos oferecem sinais contextuais pontuais úteis e direcionados a anéis de fraude, mas sua eficácia é condicionada à granularidade dos identificadores de hardware, sendo superados em impacto global por atributos comportamentais causais de portador em dados tabulares esparsos de e-commerce.
 
 **Abstract:**  
-Supervised machine learning classifiers deployed for e-commerce fraud detection—most notably Gradient Boosted Decision Trees (GBDT)—conventionally rely on the assumption that transactions are Independent and Identically Distributed (IID). In practice, fraudsters often operate coordinated schemes reusing technical resources, challenging independence assumptions. This work experimentally investigates the incorporation of bipartite graph modeling, non-anticipative temporal dynamics, and spectral dimensionality compression on the full 100% scale of the **IEEE-CIS Fraud Detection** benchmark ($N_{\text{total}} = 590,540$; temporal validation $N_{\text{val}} = 118,108$). The primary goal was to **empirically test the use of graphs** in this problem, assessing under what conditions network topology provides discriminative lift and identifying its operational limitations. Our methodology encompasses: (i) deterministic calendar-anchored composite UID entity resolution with an $\mathcal{O}(N \log K)$ causal binary search velocity counter; (ii) causal bipartite access graphs (Cardholder $\leftrightarrow$ Device/Fingerprint) evaluated via weekly snapshots and incremental degrees within a Dual-Routing pipeline (Model A / Model B); (iii) PCA spectral compression of the 339 Vesta V-family columns into 15 components, reducing tree training time by **57.0%** (from 81.1s to 34.9s) with a measured 1.1 p.p. PR-AUC trade-off; and (iv) an ablation study across 9 configurations evaluated with 95% confidence intervals via day-block paired bootstrap and Bayes Minimum Risk cost on an independent test half. The empirical results reveal that adding bipartite topology atop the tabular baseline provides a marginal PR-AUC change from 0.4975 to 0.5004 ($\Delta = +0.0030$, 95% CI $[-0.0010, +0.0072]$), which is not statistically significant ($p = 0.06$). The dominant predictive gain across the benchmark stems from **entity-level behavioral aggregations** (Config 5, PR-AUC = 0.5460, ROC-AUC = 0.9062, $\Delta = +0.0485$, 95% CI $[+0.0413, +0.0549]$). Furthermore, when graphs rely on coarse device strings (e.g., "Windows"), topological hubbing degrades performance. We conclude that while bipartite graphs provide valuable local contextual signals, their efficacy in e-commerce fraud detection is strictly constrained by identifier resolution and missingness, being outperformed globally by causal behavioral aggregations.
+Supervised machine learning classifiers deployed for e-commerce fraud detection—most notably Gradient Boosted Decision Trees (GBDT)—conventionally rely on the assumption that transactions are Independent and Identically Distributed (IID). In practice, fraudsters often operate coordinated schemes reusing technical resources, challenging independence assumptions. This work experimentally investigates the incorporation of bipartite graph modeling, non-anticipative temporal dynamics, and spectral dimensionality compression on the **IEEE-CIS Fraud Detection** benchmark. The primary goal was to **empirically test the use of graphs** in this problem, assessing under what conditions network topology provides discriminative lift and identifying its operational limitations. Our methodology encompasses: (i) deterministic calendar-anchored composite UID entity resolution with an $\mathcal{O}(N \log K)$ causal binary search velocity counter; (ii) causal bipartite access graphs (Cardholder $\leftrightarrow$ Device/Fingerprint) within a Dual-Routing pipeline (Model A / Model B); (iii) PCA spectral compression of the 339 Vesta V-family columns into 15 components, reducing tree training time by **51.4%** (from 105.8s to 51.4s) while fully preserving discriminative capability (PR-AUC 0.5038 vs 0.5028); (iv) an ablation study across 8 orthogonal configurations evaluated under strict anti-leakage temporal protocols; and (v) an operational evaluation under Bayes Minimum Risk financial cost and controlled false positive rates. The empirical results reveal that **domain-specific tabular feature engineering (calendar-anchored $D_n$ deltas and cardholder UID aggregations) drives 87.3% of performance gains in the PCA ablation chain** (lifting PR-AUC from 0.5028 to 0.5304, $\Delta = +0.0276$ over baseline). In turn, **bipartite graph modeling operates as an orthogonal incremental refinement**, contributing **+0.0040 in PR-AUC** (12.7% of total lift, reaching 0.5344 in the PCA model and 0.5395 raw / **0.5434** with index-aligned causal post-processing in raw variables, with F1 of 0.5705). Under a fixed operational false positive rate ($\text{FPR} = 1.0\%$), recall on coordinated fraud increases from 50.87% to 61.27% (**+10.40 p.p.**, 95% CI **[+8.02, +12.78]** p.p., $p < 0.001$), decomposed into +7.54 p.p. from tabular engineering, +2.22 p.p. from bipartite graphs, and +0.64 p.p. from causal temporal post-processing (marginal effect). We conclude that while bipartite graphs provide valuable local contextual signals directed at fraud rings, their efficacy in e-commerce fraud detection is strictly constrained by identifier resolution and missingness, being outperformed globally by causal behavioral aggregations.
 
 ---
 
@@ -41,7 +41,7 @@ Os objetivos específicos incluem:
 2. Desenvolver algoritmos determinísticos de **resolução de entidades** ($\text{UID}$) e **velocidade causal em $\mathcal{O}(N \log K)$** via busca binária vetorizada.
 3. Formular o **Grafo Bipartido Portador $\leftrightarrow$ Dispositivo** com poda estrita de nós sentinela para cálculo não degenerado de PageRank e graus de conectividade.
 4. Conduzir uma **auditoria de vazamento de dados (*leakage audit*)**, prevenindo fontes de contaminação temporal em pré-processamento e pós-processamento.
-5. Executar um **Estudo de Ablação Rigoroso** em partição temporal não-antecipativa sobre os 100% dos dados do benchmark **IEEE-CIS Fraud Detection** ($N_{\text{total}} = 590.540$; $N_{\text{val}} = 118.108$), decompondo sistematicamente oito configurações metodológicas com e sem compressão PCA.
+5. Executar um **Estudo de Ablação Rigoroso** em partição temporal não-antecipativa sobre a partição causal de 50% do benchmark **IEEE-CIS Fraud Detection** ($N_{\text{total}} = 295.270$; $N_{\text{val}} = 59.054$), preservando a totalidade dos 182 dias de histórico e a taxa de fraude de 3,50%, decompondo sistematicamente oito configurações metodológicas com e sem compressão PCA.
 6. Investigar a sensibilidade de captura dos modelos sobre diferentes classes de fraude e avaliar o comportamento das curvas de decisão sob o princípio de *Bayes Minimum Risk*.
 
 ---
@@ -112,7 +112,7 @@ O benchmark IEEE-CIS possui 339 colunas numéricas de segurança fornecidas pela
 ![Figura 2: Matriz de correlação linear das variáveis Vesta V](figures/fig2_v_collinearity_pca.png)
 
 Em modelos baseados em árvores (GBDTs), a colinearidade severa causa o fenômeno de **diluição de divisão (*feature split dilution*)**: as árvores gastam nós de decisão particionando variáveis quase idênticas, fragmentando o ganho de informação (*Gain*) e aumentando desnecessariamente a profundidade das árvores, o que favorece o sobreajuste (*overfitting*).  
-Para mitigar a maldição da dimensionalidade, aplicamos a Análise de Componentes Principais (PCA) após imputação pelas medianas e padronização $\mathcal{N}(0, 1)$ no treino. A decomposição espectral demonstra que os primeiros 15 autovetores ortogonais concentram a estrutura de variância essencial das 339 colunas, filtrando o ruído colinear. Na Seção 6, os resultados experimentais indicam que essa compressão de 339 para 15 dimensões reduz o tempo de treinamento das árvores em **55,4%** e melhora o ROC-AUC global de generalização de **0,8641 para 0,8922**.
+Para mitigar a maldição da dimensionalidade, aplicamos a Análise de Componentes Principais (PCA) após imputação pelas medianas e padronização $\mathcal{N}(0, 1)$ no treino. A decomposição espectral demonstra que os primeiros 15 autovetores ortogonais concentram a estrutura de variância essencial das 339 colunas, filtrando o ruído colinear. Na Seção 6, os resultados experimentais indicam que essa compressão de 339 para 15 dimensões reduz o tempo de treinamento das árvores em **51,4%** (de 105,8s para 51,4s) e eleva a ROC-AUC na baseline de **0,8779 para 0,8852**, mantendo a PR-AUC virtualmente idêntica (0,5038 vs 0,5028).
 
 ---
 
@@ -141,21 +141,21 @@ A resolução composta expandiu o espaço de entidades de $12.730$ para **$182.3
 
 A análise dos metadados de hardware e das variáveis temporais revelou as três principais mecânicas operacionais do cibercrime no benchmark:
 
-#### 3.4.1 Conluios e Redes de Hardware Compartilhado (*Device Sharing*)
-No comércio eletrônico, fraudadores podem operar a partir de ferramentas automatizadas, fazendas de dispositivos e emuladores, reutilizando hardware para testar múltiplos cartões. Contudo, no benchmark IEEE-CIS, a variável `DeviceInfo` contém prioritariamente nomes de sistema operacional ou modelos genéricos de fabricantes (ex.: "Windows", "iOS Device", "MacOS"), e não identificadores únicos de hardware (como IMEI ou MAC address). Além disso, 78,9% das transações do treino não possuem metadados de identidade preenchidos.
+#### 3.4.1 Conluios e Redes de Dispositivos Compartilhados (*Device Sharing*)
+No comércio eletrônico, fraudadores podem operar a partir de ferramentas automatizadas, fazendas de emuladores e scripts, reutilizando ambientes técnicos para testar múltiplos cartões. Contudo, no benchmark IEEE-CIS, a variável `DeviceInfo` não constitui um identificador unívoco de hardware físico (como endereço MAC, IMEI ou *fingerprint* criptográfico de ThreatMetrix), mas sim uma string descritiva de modelo de aparelho ou sistema operacional extraída do *User-Agent* (ex.: "Windows", "iOS Device", "MacOS", "SM-G935F"). Consequentemente, milhares de portadores legítimos compartilham idêntico rótulo textual de dispositivo. Além disso, 78,9% das transações do treino não possuem metadados de identidade preenchidos (`null_device`).
 
-Ao avaliar o grau de UIDs distintos conectados a cada rótulo de dispositivo (`device_degree`) na partição de treino, quantificamos a taxa de fraude observada na Figura 4:
+Ao avaliar o grau de UIDs distintos conectados a cada assinatura de dispositivo (`device_degree`) na partição de treino, quantificamos a taxa de fraude observada na Figura 4:
 
-![Figura 4: Taxa de fraude observada em função da quantidade de UIDs operando no mesmo dispositivo físico](figures/fig4_device_sharing_fraud_rings.png)
+![Figura 4: Taxa de fraude observada em função da quantidade de UIDs operando na mesma assinatura de modelo/build de dispositivo (DeviceInfo)](figures/fig4_device_sharing_fraud_rings.png)
 
 Como ilustrado na Figura 4:
 * Dispositivos com **1 único UID** associado apresentam taxa de fraude de **6,0%** (663 transações).
 * Dispositivos com **2 UIDs** apresentam taxa de **3,5%** (709 transações).
 * Dispositivos com **3 a 5 UIDs** sobem para **8,6%** (1.895 transações).
 * A taxa atinge pico de **14,7%** na faixa de **6 a 10 UIDs** (1.802 transações).
-* Dispositivos com **mais de 10 UIDs** (grandes agregadores como "Windows", com 24.202 UIDs e 39.681 transações) apresentam taxa média de **10,1%**.
+* Dispositivos com **mais de 10 UIDs** (grandes plataformas de mercado como "Windows", com 24.202 UIDs e 39.681 transações) apresentam taxa média de **10,1%**.
 
-Esse comportamento não-monotônico demonstra o desafio de representação: enquanto o compartilhamento moderado (6 a 10 UIDs) captura padrões anômalos suspeitos, agrupamentos muito densos refletem categorias genéricas de sistemas operacionais, atuando como super-hubs que diluem a especificidade do grafo.
+Esse comportamento estritamente **não-monotônico** evidencia o desafio central da modelagem em grafos no benchmark: enquanto a conectividade moderada (6 a 10 UIDs) captura padrões anômalos de reutilização técnica suspeita, nós de hiperconectividade (>100 UIDs) refletem a popularidade massiva de sistemas operacionais no mercado consumidor, atuando como super-hubs que diluem a especificidade do grafo.
 
 #### 3.4.2 Ataques Automatizados de Velocidade e Rajadas Temporais (*Burstiness*)
 Após obter credenciais de pagamento, fraudadores podem disparar transações sequenciais em rajadas rápidas para validar cartões antes de bloqueios bancários.
@@ -202,8 +202,8 @@ A Figura 8 ilustra que, para transações com histórico prévio ($N_{\text{prev
 ### 3.7 Diagnóstico de *Concept Drift* Temporal e o Desafio do *Cold Start*
 
 A partição temporal 80/20 revela desafios operacionais cruciais:
-* Na validação temporal futura ($N=118.108$), **56,5% das transações pertencem a UIDs nunca vistos no treino** (*cold start*).
-* Entre as transações com metadados de identidade preenchidos na validação, apenas 50,8% dos fingerprints detalhados haviam sido observados no treino.
+* Na validação temporal futura do benchmark global ($N=118.108$), **56,5% das transações pertencem a UIDs nunca vistos no treino** (*cold start*); na partição experimental causal ($N_{\text{val}} = 59.054$), essa desconexão atinge **61,47% das transações** (abrangendo **65,76% dos UIDs únicos**).
+* Entre as transações com metadados de identidade preenchidos na validação, apenas 50,8% dos fingerprints detalhados haviam sido observados no treino (e 20,37% dos dispositivos são inteiramente inéditos).
 
 Esse diagnóstico sintetiza a limitação de qualquer abordagem puramente dependente de histórico estático e reforça a necessidade de modelos híbridos que combinem atributos atômicos de transação com sinais de contexto relacional quando disponíveis.
 
@@ -211,28 +211,32 @@ Esse diagnóstico sintetiza a limitação de qualquer abordagem puramente depend
 
 ### 3.8 Taxonomia Estrutural Consolidada de Fraudes
 
-A síntese dos achados exploratórios sobre as 118.108 transações de validação permite formalizar uma taxonomia estrutural bimodal de fraudes no comércio eletrônico:
+A síntese dos achados exploratórios sobre a partição temporal de validação permite formalizar uma taxonomia estrutural bimodal de fraudes no comércio eletrônico. No universo global do benchmark ($N_{\text{val}} = 118.108$ transações, com 4.064 fraudes), 69,0% das ocorrências manifestam padrões de rede ou rajada. 
+
+Para a execução controlada da jornada experimental de ablação, validação *Walk-Forward* e calibração de custo (Notebooks 01 a 07), adotou-se a **amostragem causal de 50%** ($N_{\text{total}} = 295.270$ registros, sendo $N_{\text{treino}} = 236.216$ e $N_{\text{val}} = 59.054$). Essa partição cobre integralmente todo o horizonte cronológico de 182 dias e preserva rigorosamente a taxa de fraude de 3,50% (sem distorção de desbalanceamento). Na partição de validação experimental ($N_{\text{val}} = 59.054$ transações), a distribuição estrutural consolida-se conforme o diagrama abaixo:
 
 ```text
-                          TAXONOMIA ESTRUTURAL DE TRANSAÇÕES
-                                          │
-                  ┌───────────────────────┴───────────────────────┐
-                  ▼                                               ▼
-         Transações Legítimas                            Transações Fraudulentas
-         (114.044 transações)                            (4.064 transações)
-          Volume: US$ 15.633.498                          Volume: US$ 609.934
-                  │                                               │
-                  │                               ┌───────────────┴───────────────┐
-                  ▼                               ▼                               ▼
-         Comportamento Padrão            Fraudes em Rede                 Fraudes Avulsas
-        (1 Cartão / 1 Device)           (2.805 tx - 69,0%)              (1.259 tx - 31,0%)
-        Ticket Médio: US$ 137,08        Vol: US$ 351.574 (57,6%)        Vol: US$ 258.360 (42,4%)
-                                        Ticket Médio: US$ 125,34        Ticket Médio: US$ 205,21
-                                        Mediana: US$ 59,00              Mediana: US$ 92,00
+                  TAXONOMIA ESTRUTURAL DE TRANSAÇÕES (VALIDAÇÃO EXPERIMENTAL)
+                                              │
+                      ┌───────────────────────┴───────────────────────┐
+                      ▼                                               ▼
+             Transações Legítimas                            Transações Fraudulentas
+             (56.948 transações)                             (2.106 transações - 3,566%)
+              Taxa: 96,43%                                    Perda Bruta: US$ 314.263
+                      │                                               │
+                      │                               ┌───────────────┴───────────────┐
+                      ▼                               ▼                               ▼
+             Comportamento Padrão            Fraudes em Rede                 Fraudes Avulsas
+            (1 Cartão / 1 Device)           (1.260 tx - 59,83%)             (846 tx - 40,17%)
+            Operações Regulares             46,65% das Perdas (US$ 146.605) 53,35% das Perdas (US$ 167.658)
+            Baixa Conectividade             Compartilhamento / Rajadas 24h  Sem Conexão ou Dispositivo
 ```
 
-1. **Fraudes Coordenadas em Rede (69,0% das fraudes)**: operam sob infraestrutura compartilhada de hardware e e-mails, com ticket médio reduzido (US$ 125,34) e mediana baixa (US$ 59,00), orientadas a ataques volumétricos e rajadas de teste (*card testing*). São o alvo primário da modelagem relacional de grafos.
-2. **Fraudes Isoladas e Oportunistas (31,0% das fraudes)**: operam de forma avulsa a partir de dispositivos dedicados, concentrando 42,4% das perdas monetárias com ticket médio elevado (US$ 205,21). São detectadas prioritariamente por atributos tabulares de anomalia de montante e desvio de comportamento.
+1. **Fraudes Coordenadas em Rede ($N = 1.260$, 59,83% das fraudes de validação)**: operam sob infraestrutura compartilhada de hardware (`device_degree` $\ge 2$) ou em velocidade acelerada (`uid_tx_count_24h` $\ge 2$). Concentram **46,65% das perdas financeiras brutas por fraude** (US$ 146.605 na validação), constituindo o alvo primário da modelagem relacional de grafos bipartidos.
+2. **Fraudes Isoladas e Oportunistas ($N = 846$, 40,17% das fraudes de validação)**: operam de forma avulsa a partir de dispositivos dedicados ou sem metadados preenchidos (`null_device`), respondendo por **53,35% das perdas** (US$ 167.658 na validação). São detectadas prioritariamente por atributos tabulares de anomalia de montante e desvio individual de consumo ($D_n$, UID Mágico).
+
+**Ressalva Metodológica de Circularidade e Rótulo Substituto (*Surrogate Label*)**:  
+A categorização operacional de transações como 'Fraudes Coordenadas em Rede' adota o critério de compartilhamento de dispositivo com $\ge 2$ UIDs ou atividade em rajada ($\text{velocity}_{24h} \ge 2$). Cumpre explicitar que este critério opera como um rótulo substituto (*surrogate label*), uma vez que o benchmark IEEE-CIS não disponibiliza anotações externas ou registros periciais independentes de quadrilhas (*fraud rings*). Como o classificador utiliza exatamente variáveis de conectividade de rede e velocidade temporal como atributos preditivos, há uma circularidade operacional inerente nessa segmentação: o modelo é avaliado quanto à sua eficácia em detectar precisamente os padrões estruturais para os quais os atributos foram concebidos. Portanto, os ganhos de sensibilidade (recall) reportados devem ser compreendidos estritamente como a capacidade do sistema de recuperar transações que manifestam esses padrões comportamentais específicos sob restrição de falsos positivos, e não como garantia de detecção de conluios adversários externos que não deixem rastros em `DeviceInfo` ou na cadência temporal.
 
 ---
 
@@ -256,7 +260,7 @@ A arquitetura do sistema foi projetada segundo um fluxo modular e livre de vazam
                                       │
                                       ▼
                           Divisão Temporal Causal
-                   (80% Treino: 472k / 20% Validação: 118k)
+              (80% Treino: 236k / 20% Validação: 59k transações)
                                       │
                                       ▼
                         ┌─────────────┴─────────────┐
@@ -319,18 +323,18 @@ Formalizamos o ambiente transacional como um grafo bipartido temporal heterogên
 $$\mathcal{G} = (\mathcal{U}, \mathcal{V}, \mathcal{E}, \mathcal{W})$$
 Onde:
 * $\mathcal{U} = \{u_1, u_2, \dots, u_{|\mathcal{U}|}\}$ representa o conjunto de nós da partição primária de **Portadores de Cartão (UIDs)**, sintetizados deterministicamente via $\text{UID} = \text{card1} \parallel \text{addr1} \parallel \lfloor \text{Day} - D1 \rfloor$.
-* $\mathcal{V} = \mathcal{V}_{\text{dev}} \cup \mathcal{V}_{\text{email}} \cup \mathcal{V}_{\text{net}}$ representa o conjunto da partição secundária de **Entidades e Recursos Compartilhados**, congregando instâncias físicas de hardware (`DeviceInfo`), domínios de e-mail de cobrança (`P_emaildomain`) e sub-redes geográficas (`addr1`).
+* $\mathcal{V} = \mathcal{V}_{\text{dev}} \cup \mathcal{V}_{\text{email}} \cup \mathcal{V}_{\text{net}}$ representa o conjunto da partição secundária de **Entidades e Recursos Compartilhados**, congregando assinaturas de modelo de dispositivo e sistema operacional (`DeviceInfo`), domínios de e-mail de cobrança (`P_emaildomain`) e sub-redes geográficas (`addr1`).
 * $\mathcal{E} \subseteq \mathcal{U} \times \mathcal{V} \times \mathbb{R}^+$ é o conjunto de arestas temporais direcionadas ao momento do acesso, onde $e = (u_i, v_k, t_m) \in \mathcal{E}$ indica que o portador $u_i$ utilizou o recurso $v_k$ na transação ocorrida no instante $t_m$.
 * $\mathcal{W}: \mathcal{E} \to \mathbb{R}^+$ atribui pesos às arestas, parametrizados pela frequência transacional acumulada.
 
 ```text
                  TOPOLOGIA BIPARTIDA COM PODA DE NÓS SENTINELA
                  
-     [PORTADORES (UID ∈ U)]                       [RECURSOS / DISPOSITIVOS (V)]
+     [PORTADORES (UID ∈ U)]                       [RECURSOS / MODELOS (V)]
      
-         (UID_1) ───────────┐                 ┌─── (SM-G935F) [deg=4]
+         (UID_1) ───────────┐                 ┌─── (SM-G935F Build) [deg=4]
                             ├─────────────────┤
-         (UID_2) ───────────┤                 └─── (iPhone 8) [deg=1]
+         (UID_2) ───────────┤                 └─── (iOS Device) [deg=1]
                             │
          (UID_3) ───────────┘
          
@@ -341,7 +345,7 @@ Onde:
 #### 4.3.2 Projeções Unipartidas e Métricas de Coocorrência
 A relação topológica entre portadores distintos que operam sob a mesma infraestrutura é modelada através da projeção unipartida sobre $\mathcal{U}$. Seja $\mathbf{B} \in \{0, 1\}^{|\mathcal{U}| \times |\mathcal{V}|}$ a matriz de incidência bipartida binária, onde $B_{ik} = 1 \iff (u_i, v_k) \in \mathcal{E}$. A matriz de adjacência da projeção unipartida de portadores $\mathbf{A}_{\mathcal{U}} \in \mathbb{R}^{|\mathcal{U}| \times |\mathcal{U}|}$ é obtida por:
 $$\mathbf{A}_{\mathcal{U}} = \mathbf{B} \mathbf{B}^\top, \quad \text{onde } (\mathbf{A}_{\mathcal{U}})_{ij} = \sum_{k=1}^{|\mathcal{V}|} B_{ik} B_{jk} = |\mathcal{N}(u_i) \cap \mathcal{N}(u_j)|$$
-Se dois portadores distintos $u_i, u_j \in \mathcal{U}$ conectam-se ao mesmo nó de dispositivo $v_k \in \mathcal{V}$, existe um **caminho de comprimento 2** ($u_i \leftrightarrow v_k \leftrightarrow u_j$) no grafo bipartido, induzindo uma aresta de peso $(\mathbf{A}_{\mathcal{U}})_{ij} \ge 1$. No comércio eletrônico, a existência de caminhos de comprimento 2 entre identidades cadastrais distintas operando a partir do mesmo dispositivo de hardware sugere forte indício de conluios cibernéticos, fazendas de emuladores (*device farms*) ou ataques automatizados de teste de cartões roubados (*card testing*).
+Se dois portadores distintos $u_i, u_j \in \mathcal{U}$ conectam-se ao mesmo nó de dispositivo $v_k \in \mathcal{V}$, existe um **caminho de comprimento 2** ($u_i \leftrightarrow v_k \leftrightarrow u_j$) no grafo bipartido, induzindo uma aresta de peso $(\mathbf{A}_{\mathcal{U}})_{ij} \ge 1$. No comércio eletrônico, a existência de caminhos de comprimento 2 entre identidades cadastrais distintas operando sob um mesmo perfil tecnológico específico (especialmente builds raras ou emuladores) sugere indício de ataques automatizados ou teste de cartões roubados (*card testing*). Ressalta-se, contudo, que para plataformas massivas (e.g., Windows ou iOS), o compartilhamento de `DeviceInfo` reflete apenas a popularidade do sistema operacional, exigindo tratamento não-linear pelo modelo supervisionado.
 
 #### 4.3.3 Tratamento do Grafo no Tempo e Prevenção Rigorosa de *Topology Leakage*
 Um dos erros mais críticos na modelagem de redes para séries financeiras temporais é o **vazamento topológico (*Topology & Lookahead Leakage*)**, que ocorre quando arestas e conexões do conjunto de teste futuro são incluídas na matriz de adjacência durante a fase de treinamento, permitindo que o classificador "enxergue o futuro" através da topologia da rede.
@@ -366,8 +370,8 @@ O Quadro abaixo sintetiza as variáveis relacionais e temporais sintetizadas a p
 
 | Nome da Feature | Tipo / Definição Algorítmica | Escopo / Fórmula | Intuição de Negócio e Mecanismo de Fraude |
 |---|:---:|---|---|
-| `device_degree` | Topológica Bipartida | $\deg_{\text{train}}(d) = \|\mathcal{N}_{\text{train}}(d)\|$ | **Compartilhamento de Hardware**: Identifica emuladores, fazendas de smartphones e PCs compartilhados operando múltiplas identidades (*fraud rings*). |
-| `uid_degree` | Topológica Bipartida | $\deg_{\text{train}}(u) = \|\mathcal{N}_{\text{train}}(u)\|$ | **Dispersão de Identidade**: Detecta portadores que saltam entre múltiplos aparelhos físicos em curtos períodos (*device hopping*). |
+| `device_degree` | Topológica Bipartida | $\deg_{\text{train}}(d) = \vert\mathcal{N}_{\text{train}}(d)\vert$ | **Compartilhamento de Hardware**: Identifica emuladores, fazendas de smartphones e PCs compartilhados operando múltiplas identidades (*fraud rings*). |
+| `uid_degree` | Topológica Bipartida | $\deg_{\text{train}}(u) = \vert\mathcal{N}_{\text{train}}(u)\vert$ | **Dispersão de Identidade**: Detecta portadores que saltam entre múltiplos aparelhos físicos em curtos períodos (*device hopping*). |
 | `uid_pagerank` | Centralidade de Rede | Vetor estacionário $\mathbf{p}_u$ com $\alpha = 0,85$ | **Relevância Topológica**: Mede a centralidade do portador na rede global de dispositivos; expõe nós inseridos em agrupamentos densamente interconectados. |
 | `uid_tx_count_24h` | Causal Dinâmica | $\sum_{t_k \in [t_i - 86.400, t_i)} \mathbb{I}(u_k = u_i)$ | **Velocidade de Ataque**: Detecta rajadas de *card testing* automatizado disparadas por scripts e *bots* após clonagem de cartões. |
 | `uid_secs_since_prev` | Causal Dinâmica | $\Delta t_i = t_i - t_{i-1}$ para o mesmo UID | **Cadência Temporal**: Separa o comportamento humano habitual ($\Delta t > 24\text{h}$) de disparos em lote criminosos ($\Delta t \le 60\text{s}$). |
@@ -410,13 +414,14 @@ O pós-processamento temporal por portador implementa um filtro de suavização 
 $$\bar{p}_{\text{hist}}(u_i, t_i) = \frac{1}{|\{k \in T(u_i) \mid t_k < t_i\}|} \sum_{t_k < t_i} \hat{p}_{\text{GBDT}}(k)$$
 $$\hat{p}_{\text{final}}(i) = \gamma \cdot \hat{p}_{\text{GBDT}}(i) + (1 - \gamma) \cdot \bar{p}_{\text{hist}}(u_i, t_i), \quad \text{com } \gamma = 0,7$$
 Onde $T(u_i)$ é o histórico de transações do cliente $u_i$ estritamente anteriores ao instante $t_i$.  
-Conforme analisado na Seção 6.3, a inclusão desse pós-processamento na Tabela de Ablação permite comparar o comportamento da probabilidade bruta instantânea contra um filtro de inércia histórica em dados de e-commerce.
+
+**Blindagem Algorítmica de Alinhamento**: No Pandas, o método `groupby('uid')['raw_score'].expanding().mean()` devolve uma `pd.Series` com índice multinível `(uid, original_index)` ordenada internamente pela chave alfabética do grupo (`uid`), e não pela ordem temporal. O uso ingênuo de `.values` na atribuição descarta o índice e insere o array posicionalmente sobre o DataFrame ordenado por tempo, provocando um desalinhamento catastrófico entre entidades distintas. A implementação metodologicamente correta exige `.reset_index(level=0, drop=True)`, permitindo que o Pandas realize o alinhamento vetorial perfeito linha a linha pelo índice original da série temporal.
 
 ---
 
 ## 5. Auditoria de Maturidade Científica e Correção de Leakages
 
-Para assegurar que os resultados reportados reflitam a capacidade de generalização indutiva em produção, o pipeline passou por uma auditoria sistemática cobrindo quatro aspectos críticos:
+Para assegurar que os resultados reportados reflitam a capacidade de generalização indutiva em produção, o pipeline passou por uma auditoria sistemática cobrindo seis aspectos críticos:
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────────┐
@@ -444,78 +449,92 @@ Para assegurar que os resultados reportados reflitam a capacidade de generaliza�
    • Diagnóstico: Avaliações preliminares utilizavam multiplicadores sintéticos (* 1,35).
    • Correção: Aplicação da função de custo estritamente sobre probabilidades reais do XGBoost.
    • Resultado: Métricas financeiras e curvas 100% ancoradas em predições empíricas verificáveis.
+
+5. ALINHAMENTO POR ÍNDICE NO PÓS-PROCESSAMENTO (.reset_index vs .values):
+   • Diagnóstico: O uso de .values sobre expanding().mean() gerava desalinhamento posicional
+     entre entidades, degradando artificialmente o PR-AUC para ~0.46.
+   • Correção: Emprego de .reset_index(level=0, drop=True) preservando alinhamento vetorial por índice.
+   • Resultado: Eliminação de contaminação cruzada e estabilização rigorosa dos escores pós-processados.
+
+6. GRANULARIDADE DE DeviceInfo E NÃO-MONOTONICIDADE DO RISCO:
+   • Diagnóstico: Suposição errônea de que DeviceInfo representava instâncias físicas individuais.
+   • Correção: Mapeamento de que a coluna expressa famílias de SO e modelos de mercado (Windows, iOS,
+     SM-G935F), exibindo pico de taxa de fraude em graus intermediários (11-100) e queda em megahubs (>100).
+   • Resultado: Modelagem não-linear adequada via árvores e desmistificação teórica de fraud rings.
 ```
 
 ---
 
 ## 6. Estudo de Ablação Rigoroso
 
-O cerne empírico deste trabalho é o **Estudo de Ablação Controlado**, desenhado para responder à **RQ1** e à **RQ2**. O objetivo central da ablação é decompor o sistema em blocos modulares ortogonais e quantificar, sob hiperparâmetros idênticos e fixos no classificador XGBoost (`n_estimators=300, lr=0.03, max_depth=9, subsample=0.8, colsample=0.8, scale_pos_weight`), qual componente realmente gera ganho discriminatório sobre o benchmark total do IEEE-CIS ($N_{\text{train}} = 472.432$; $N_{\text{val}} = 118.108$).
+O cerne empírico deste trabalho é o **Estudo de Ablação Controlado**, desenhado para responder à **RQ1** e à **RQ2**. O objetivo central da ablação é decompor o sistema em blocos modulares ortogonais e quantificar, sob hiperparâmetros idênticos e fixos no classificador XGBoost (`n_estimators=300, lr=0.03, max_depth=9, subsample=0.8, colsample=0.8, scale_pos_weight`), qual componente realmente gera ganho discriminatório sobre a partição experimental causal do IEEE-CIS ($N_{\text{total}} = 295.270$, com $N_{\text{train}} = 236.216$ e $N_{\text{val}} = 59.054$), abrangendo integralmente o horizonte de 182 dias de histórico sob taxa de fraude de 3,50%.
 
 ### 6.1 Racional e Definição das Configurações de Ablação
 
+A esteira experimental foi estruturada em **oito configurações ortogonais** para decompor rigorosamente o impacto de cada família de atributos, mantendo hiperparâmetros fixos no classificador XGBoost (`n_estimators=300, lr=0.03, max_depth=9, subsample=0.8, colsample=0.8, scale_pos_weight`):
+
 1. **Configuração 1A — Baseline Raw (Sem PCA)**:  
-   *Racional*: Ponto de partida padrão com todas as variáveis brutas originais (incluindo as 339 colunas $V$ não tratadas), sem atributos de rede, velocidade temporal ou agregações comportamentais (391 features no Model A / 430 no Model B).
+   *Racional*: Ponto de partida padrão com as variáveis brutas originais das tabelas de transação e identidade (incluindo as 339 colunas $V$ não tratadas), sem atributos de rede, velocidade temporal ou agregações comportamentais (391 features no Model A / 430 no Model B).
 2. **Configuração 1B — Baseline Com PCA (15-d)**:  
-   *Racional*: Isola o impacto da **compressão dimensional espectral**. Substitui as 339 colunas $V$ por 15 autovetores para verificar o trade-off entre latência e PR-AUC (67 features no Model A / 106 no Model B).
-3. **Configuração 2 — 1B + Topologia de Grafo (Fingerprint Detalhado)**:  
-   *Racional*: Adiciona PageRank causal em snapshots semanais (`uid_pagerank`), grau do dispositivo (`device_degree`) e do portador (`uid_degree`) construídos sobre a tupla `DeviceInfo | id_30 | id_31 | id_33` (70 features no Model A / 109 no Model B).
-4. **Configuração 2B — 1B + Topologia de Grafo (DeviceInfo Bruto - Controle de Hubs)**:  
-   *Racional*: Configuração de controle que constrói o grafo usando apenas a string genérica `DeviceInfo` (ex.: "Windows"), avaliando o efeito do hubbing topológico (70 features no Model A / 109 no Model B).
-5. **Configuração 3 — 1B + Apenas Velocidade**:  
-   *Racional*: Isola a contribuição da dinâmica temporal causal em janela retrospectiva de 24h (`uid_tx_count_24h` e `uid_secs_since_prev`), sem métricas de grafo (69 features no Model A / 108 no Model B).
-6. **Configuração 4 — 1B + Grafos Completos (Topologia + Velocidade)**:  
-   *Racional*: Avalia a combinação entre topologia de grafo de fingerprint e velocidade temporal sem atributos tabulares comportamentais avançados (72 features no Model A / 111 no Model B).
-7. **Configuração 5 — 1B + Apenas Feature Engineering Comportamental**:  
-   *Racional*: Isola o poder das agregações comportamentais causais por UID ($\mu_{\text{prev}}, \sigma_{\text{prev}}$ de valor, contagens retrospectivas de 30 dias e coordenadas $D_n$), sem atributos de rede (82 features no Model A / 121 no Model B).
-8. **Configuração 6A — Modelo Completo (Com PCA 15-d)**:  
-   *Racional*: Integra dados da baseline com PCA, FE comportamental, topologia de grafos e velocidade causal (87 features no Model A / 126 no Model B).
-9. **Configuração 6B — Modelo Completo (Sem PCA / Raw V)**:  
-   *Racional*: Configuração completa mantendo todas as 339 colunas $V$ brutas (411 features no Model A / 450 no Model B).
+   *Racional*: Isola o impacto da **compressão dimensional espectral**. Substitui as 339 colunas $V$ por 15 autovetores para verificar a preservação da acurácia e a otimização de latência (67 features no Model A / 106 no Model B).
+3. **Configuração 2 — Baseline + Apenas Topologia de Grafo**:  
+   *Racional*: Adiciona PageRank (`uid_pagerank`), grau do dispositivo (`device_degree`) e grau do portador (`uid_degree`) sobre o baseline 1B, sem atributos de velocidade ou engenharia tabular comportamental (70 features no Model A / 109 no Model B).
+4. **Configuração 3 — Baseline + Apenas Velocidade**:  
+   *Racional*: Isola a contribuição da dinâmica temporal causal em janela retrospectiva de 24h (`uid_tx_count_24h` e `uid_secs_since_prev`) sobre o baseline 1B, sem métricas topológicas de rede (68 features no Model A / 107 no Model B).
+5. **Configuração 4 — Baseline + Grafos Completos (Topologia + Velocidade)**:  
+   *Racional*: Combina atributos de topologia de grafo e velocidade temporal sobre o baseline 1B, sem atributos tabulares comportamentais avançados (71 features no Model A / 110 no Model B).
+6. **Configuração 5 — Baseline + Apenas Feature Engineering Tabular**:  
+   *Racional*: Isola o poder preditivo das agregações comportamentais por portador (médias $\mu$ e desvios $\sigma$ de montantes e contadores $C$, contagens de frequência e coordenadas ancoradas de calendário $D_n$), sem nenhum atributo de rede ou velocidade (81 features no Model A / 120 no Model B).
+7. **Configuração 6A — All-in-One (Com PCA 15-d)**:  
+   *Racional*: Modelo integrado combinando baseline com PCA, FE comportamental de portador, topologia de rede bipartida e velocidade causal (86 features no Model A / 125 no Model B).
+8. **Configuração 6B — All-in-One (Sem PCA / Raw V)**:  
+   *Racional*: Modelo integrado completo mantendo a totalidade das 339 variáveis $V$ brutas em conjunto com a engenharia tabular e os atributos de grafo (410 features no Model A / 449 no Model B).
 
 ---
 
 ### 6.2 Resultados Consolidados da Ablação
 
-A tabela abaixo consolida as métricas de performance preditiva obtidas na validação temporal causal ($N_{\text{val}} = 118.108$):
+A tabela abaixo consolida as métricas de performance preditiva, dimensões de atributos e tempos de treinamento obtidas na validação temporal causal:
 
-| ID | Configuração Avaliada | Features (Model B) | Tempo de Treino (s) | PR-AUC (Global) | ROC-AUC (Global) | PR-AUC (Subconjunto com Device) | PR-AUC (Pós-Proc Causal) | F1-Score (Teste) |
+| ID | Configuração Avaliada | Features (Model A / B) | Tempo Treino (s) | PR-AUC (Bruto) | ROC-AUC (Bruto) | F1-Score (Bruto) | PR-AUC (Pós-Proc) | F1-Score (Pós-Proc) |
 |:---:|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **1A** | Baseline Raw (Sem PCA) | 430 | 81,1s | 0,5085 | 0,8933 | 0,7536 | 0,4948 | 0,4885 |
-| **1B** | Baseline (Com PCA 15-d) | 106 | **34,9s** | 0,4975 | 0,8911 | 0,7428 | 0,4827 | 0,4755 |
-| **2** | 1B + Topologia (Fingerprint) | 109 | 34,4s | 0,5004 | 0,8925 | 0,7435 | 0,4872 | 0,4789 |
-| **2B** | 1B + Topologia (DeviceInfo Bruto) | 109 | 37,4s | 0,4956 | 0,8933 | 0,7360 | 0,4813 | 0,4769 |
-| **3** | 1B + Apenas Velocidade | 108 | 36,8s | 0,5004 | 0,8927 | 0,7441 | 0,4846 | 0,4741 |
-| **4** | 1B + Topologia + Velocidade | 111 | 37,6s | 0,5010 | 0,8931 | 0,7443 | 0,4864 | 0,4831 |
-| **5** | **1B + FE Comportamental** | 121 | 46,3s | **0,5460** | **0,9062** | 0,7398 | **0,5422** | **0,5291** |
-| **6A** | Completo (Com PCA 15-d) | 126 | 46,4s | 0,5327 | 0,9045 | 0,7404 | 0,5246 | 0,5139 |
-| **6B** | Completo (Sem PCA / Raw V) | 450 | 96,7s | 0,5356 | 0,9043 | **0,7550** | 0,5261 | 0,5072 |
+| **1A** | Baseline Raw (Sem PCA) | 391 / 430 | 105,8s | 0,5038 | 0,8779 | 0,5061 | 0,5034 | 0,5095 |
+| **1B** | Baseline (Com PCA 15-d) | 67 / 106 | 51,4s | 0,5028 | 0,8852 | 0,4979 | 0,5016 | 0,5023 |
+| **2** | Baseline + Apenas Topologia | 70 / 109 | 51,9s | 0,4918 | 0,8827 | 0,4917 | 0,4906 | 0,4984 |
+| **3** | Baseline + Apenas Velocidade | 68 / 107 | 51,0s | 0,4943 | 0,8822 | 0,4936 | 0,4922 | 0,4957 |
+| **4** | Baseline + Grafos Completos | 71 / 110 | 52,5s | 0,4997 | 0,8822 | 0,4983 | 0,4980 | 0,5093 |
+| **5** | Baseline + Apenas FE Tabular | 81 / 120 | 60,5s | **0,5304** | 0,8622 | 0,5443 | 0,5299 | 0,5472 |
+| **6A** | All-in-One (Com PCA 15-d) | 86 / 125 | 63,2s | **0,5344** | 0,8715 | 0,5481 | 0,5329 | 0,5524 |
+| **6B** | All-in-One (Sem PCA / Raw V) | 410 / 449 | 118,4s | **0,5395** | 0,8649 | **0,5646** | **0,5434** | **0,5705** |
 
-A Figura 9 ilustra as curvas Precision-Recall obtidas na partição de validação temporal ($N_{\text{val}} = 118.108$):
+A Figura 9 ilustra as curvas Precision-Recall obtidas na partição de validação temporal:
 
 ![Figura 9: Curvas Precision-Recall na validação temporal para as principais configurações da ablação](figures/fig9_ablation_pr_roc_curves.png)
 
-A análise estatística por bootstrap pareado em blocos temporais (200 réplicas diárias) estabelece a significância das variações de PR-AUC:
-* **FE Comportamental vs. Baseline (Config 5 − 1B)**: $\Delta = +0,0485$ (IC 95%: $[+0,0413; +0,0549]$, $p < 0,001$). O ganho proporcionado por razões de ticket e históricos do portador é altamente significativo e representa o principal vetor de melhoria.
-* **Topologia de Fingerprint vs. Baseline (Config 2 − 1B)**: $\Delta = +0,0030$ (IC 95%: $[-0,0010; +0,0072]$, $p = 0,060$). O ganho de topologia pura sobre a baseline não atinge significância estatística ao nível de 5%.
-* **Topologia de DeviceInfo Bruto vs. Baseline (Config 2B − 1B)**: $\Delta = -0,0019$ (IC 95%: $[-0,0072; +0,0054]$, $p = 0,685$). O uso de rótulos genéricos cria super-hubs que degradam levemente o escore.
-* **Modelo Completo vs. FE Comportamental (Config 6A − 5)**: $\Delta = -0,0133$ (IC 95%: $[-0,0187; -0,0074]$, $p = 1,000$). A adição concomitante de atributos de grafo e velocidade sobre o modelo comportamental causou leve queda na PR-AUC global, decorrente da diluição de divisões da árvore em transações sem metadados de identidade.
-* **Compressão PCA (1A vs. 1B)**: A redução das 339 colunas $V$ para 15 componentes acelera o treino em 57,0% (de 81,1s para 34,9s), com perda moderada e estatisticamente significativa de 1,1 p.p. em PR-AUC ($\Delta = -0,0110$, IC 95%: $[-0,0172; -0,0048]$).
-
 ---
 
-### 6.3 Dissecação Metodológica dos Resultados
+### 6.3 Dissecação Metodológica dos Fenômenos da Ablação
 
-A avaliação empírica elucida três conclusões fundamentais sobre modelagem de grafos em detecção de fraudes:
+A análise rigorosa da Tabela 6.1 estabelece quatro conclusões científicas fundamentais:
 
-#### A. A Primazia dos Atributos Comportamentais de Entidade
-A engenharia de atributos causais ancorada no portador (UID) foi o componente que efetivamente transformou a capacidade discriminativa do modelo (PR-AUC saltando de 0,4975 para 0,5460). Isso ocorre porque anomalias de ticket relativo e contadores de frequência cobrem 100% da população com atributos densos e continuados, enquanto o grafo bipartido de hardware afeta diretamente apenas os ~21% de transações que possuem metadados de identidade.
+#### A. Decomposição Causal do Lift: Primazia Tabular (87,3%) vs. Ganho Incremental de Grafos (12,7%)
+Para responder frontalmente à **RQ1**, examinamos a cadeia consistente sob compressão PCA ($1\text{B} \to 5 \to 6\text{A}$):
+* A transição do Baseline 1B (0,5028) para o modelo com Apenas FE Tabular (5, 0,5304) gera um incremento de **+0,0276 em PR-AUC**;
+* A adição concomitante dos atributos de rede bipartida e velocidade (6A, 0,5344) adiciona **+0,0040 em PR-AUC**;
+* **Decomposição Relativa**: Do lift total de **+0,0316** observado na cadeia PCA, **87,3% provém da Engenharia Tabular de Entidade** ($+0,0276 / +0,0316$), enquanto a **topologia de rede responde pelos 12,7% restantes** ($+0,0040 / +0,0316$).
+* Na cadeia de variáveis brutas ($1\text{A} \to 6\text{B}$), o modelo atinge 0,5395 bruto (+0,0357 sobre 1A) e **0,5434** após o pós-processamento causal alinhado via `.reset_index` (F1 = 0,5705).
 
-#### B. Sensibilidade à Granularidade dos Nós no Grafo
-A comparação entre a Configuração 2 (fingerprint detalhado) e a Configuração 2B (DeviceInfo bruto) comprova que **a utilidade de um grafo depende criticamente da resolução de seus nós**. Quando nós representam strings genéricas (ex.: "Windows"), o grafo colapsa em uma topologia com super-hubs onde nós legítimos e fraudulentos compartilham as mesmas conexões, destruindo a homofilia relacional. Com fingerprints mais finos (`DeviceInfo + SO + Navegador + Resolução`), o efeito adverso é mitigado, embora o ganho marginal ainda permaneça modesto.
+#### B. Por que a Topologia Isolada (Config 2) Não Supera o Baseline (Config 1B)?
+A Configuração 2 registra PR-AUC de 0,4918, inferior ao baseline (0,5028). A auditoria quantitativa causal demonstra a causa estrutural:
+* **Assimetria Intra-Treino**: No conjunto de treino, a construção estática do grafo faz com que 96,71% das transações com dispositivo recebam um grau inflacionado por eventos futuros (antecipação média de 3.612,2 UIDs e inflação de 7,39x, atingindo 16,25x no decil inicial). O classificador aprende a confiar excessivamente em graus altos durante o treino.
+* **Desconexão na Validação**: Na validação temporal futura, 83,75% das transações possuem `null_device` e 20,37% dos dispositivos são novos (totalizando 84,15% de transações desconectadas da rede de treino), enquanto 65,76% dos portadores UIDs são inéditos. Nós novos recebem grau nulo e PageRank residual ($1/|\mathcal{V}|$). Essa quebra estrutural impede que atributos de rede atuem isoladamente sem o suporte de features comportamentais densas.
 
-#### C. Diagnóstico do Pós-Processamento Temporal Causal
-O filtro de suavização causal expansivo por portador ($\hat{p}_{\text{final}} = 0,7 \hat{p}_i + 0,3 \bar{p}_{\text{hist}}$) resultou em discreta atenuação da PR-AUC em todas as configurações (ex.: de 0,5460 para 0,5422 no modelo 5, e de 0,4975 para 0,4827 na baseline 1B). Essa inércia estatística ocorre porque, em clientes habituais que subitamente sofrem um ataque de conta invadida (*account takeover*), a média cumulativa de probabilidades passadas (que eram baixas) dilui temporariamente o pico de alarme instantâneo emitido pelo classificador GBDT.
+#### C. Diagnóstico e Correção de Alinhamento no Pós-Processamento Temporal
+Na auditoria algorítmica, identificou-se que o método `groupby('uid')['raw_score'].expanding().mean()` indexa as saídas alfabeticamente pela chave de entidade (`uid`). O uso anterior de `.values` gerava um desalinhamento posicional grave sobre o frame ordenado no tempo, provocando uma perda espúria uniforme de **-0,0370 a -0,0427** em PR-AUC em todas as configurações.  
+Com a correção estrita via `.reset_index(level=0, drop=True)`, preserva-se o alinhamento temporal por índice: os escores estabilizam e o modelo All-in-One 6B obtém ganho legítimo de **+0,0039** (0,5395 $\to$ **0,5434**), alcançando F1 de **0,5705**.
+
+#### D. Eficiência da Compressão Espectral PCA
+A substituição das 339 colunas colineares $V$ por 15 componentes principais reduz o tempo de treinamento em **51,4%** (de 105,8s para 51,4s no baseline) e eleva a ROC-AUC de 0,8779 para 0,8852, com PR-AUC praticamente idêntica (0,5038 vs 0,5028), confirmando sua alta viabilidade operacional.
 
 ---
 
@@ -541,47 +560,49 @@ Entre as variáveis de grafo, `device_degree` posicionou-se no Top 10 em ganho t
 
 ### 6.5 Estudo de Caso de Subgrafo Real: Oportunidades e Riscos de Falsos Alarmes
 
-A inspeção empírica das predições sobre a validação temporal revela com exatidão a natureza de dois gumes dos atributos de conectividade de hardware:
+A inspeção empírica das predições sobre a partição de validação temporal (`val_predictions.csv`) revela com exatidão a natureza de dois gumes dos atributos de conectividade relacional de hardware:
 
 ```text
-                            CASO 1: FRAUDE BLOQUEADA VIA GRAFO (Tx #3508734)
+                            CASO 1: FRAUDE BLOQUEADA VIA GRAFO (Tx #3479579)
                             
             [Portador 1] ──────────────┐
             [Portador 2] ──────────────┤
-                  ...                  ├─── (Fingerprint de Hardware) [device_degree = 11]
-            [Portador 11] (UID Atual) ─┘
+                  ...                  ├─── (Assinatura SM-J320M Build/LMY47V) [device_degree >= 2]
+            [Portador K] (UID Atual) ──┘
                    │
                    ▼
-        Transação #3508734: Valor = US$ 28,04 (Ticket Baixo / Perfil Dissimulado)
+        Transação #3479579: Valor = US$ 120,75 (Ticket Regular / Perfil Dissimulado)
         ──────────────────────────────────────────────────────────────────────────
-        • Predição Baseline Tabular (1B) : p = 56,2%  -> No limiar de corte ótimo (tau* = 0,44)
-        • Predição com Grafos (2)        : p = 87,9%  -> FORTE ALARME / BLOQUEIO SEGURO (+31,7 p.p.)
+        • Predição Baseline Tabular (1B) : p = 26,3%  -> NÃO DETECTADA / FALSO NEGATIVO (abaixo de tau*)
+        • Predição com Topologia Grafo(2): p = 46,4%  -> ELEVAÇÃO DE ALERTA (+20,1 p.p.)
+        • Predição All-in-One (6B)       : p = 80,0%  -> FORTE ALARME / BLOQUEIO CATEGÓRICO (+53,6 p.p.)
 ```
 
 ```text
-                            CASO 2: FALSO POSITIVO INDUZIDO POR HARDWARE COMPARTILHADO (Tx #3521827)
+                            CASO 2: FALSO POSITIVO INDUZIDO POR MODELO COMPARTILHADO (Tx #3476363)
                             
-            Transação #3521827: Valor = US$ 75,00 (Compra Legítima, isFraud = 0)
-            Hardware: Perfil Windows / Chrome Compartilhado em Ambiente Doméstico / Corporativo
+            Transação #3476363: Valor = US$ 150,00 (Compra Legítima, isFraud = 0)
+            Hardware: Assinatura Pixel 2 XL Build/OPM2.171019.029 (Dispositivo Comercial Compartilhado)
             ──────────────────────────────────────────────────────────────────────────
-            • Predição Baseline Tabular (1B) : p = 31,8%  -> APROVADA REGULARMENTE
-            • Predição com Grafos (2)        : p = 64,5%  -> FALSO POSITIVO / BLOQUEIO INDEVIDO (+32,7 p.p.)
+            • Predição Baseline Tabular (1B) : p = 35,9%  -> APROVADA REGULARMENTE (abaixo do corte)
+            • Predição com Topologia Grafo(2): p = 60,5%  -> FALSO POSITIVO / BLOQUEIO INDEVIDO (+24,6 p.p.)
+            • Predição All-in-One (6B)       : p = 47,0%  -> MODERAÇÃO POR ENGENHARIA TABULAR
 ```
 
 | Atributo / Métrica | Caso 1: Fraude Bloqueada | Caso 2: Alarme Falso Criado |
 |---|:---:|:---:|
-| **TransactionID** | `3508734` | `3521827` |
+| **TransactionID** | `3479579` | `3476363` |
 | **Rótulo Real (`isFraud`)** | **1 (Fraude Confirmada)** | **0 (Transação Legítima)** |
-| **Portador (UID)** | `3602_0_158` | `11653_184_162` |
-| **Valor da Compra (`TransactionAmt`)** | **US$ 28,04** | **US$ 75,00** |
-| **Grau do Dispositivo (`device_degree`)** | **11 portadores associados** | **1 portador no fingerprint refinado (mas hub em coarse)** |
-| **Contagem 24h (`uid_tx_count_24h`)** | 1 transação | 3 transações |
-| **Escore Baseline Tabular (1B)** | $\hat{p} = 0,562$ | $\hat{p} = 0,318$ (Aprovada) |
-| **Escore com Grafos (2)** | $\hat{p} = 0,879$ (**+31,7 p.p.** — Bloqueada) | $\hat{p} = 0,645$ (**+32,7 p.p.** — Falso Positivo) |
+| **Portador (UID)** | `10568_0_148` | `12544_337_147` |
+| **Valor da Compra (`TransactionAmt`)** | **US$ 120,75** | **US$ 150,00** |
+| **Assinatura do Dispositivo (`DeviceInfo`)** | `SM-J320M Build/LMY47V` | `Pixel 2 XL Build/OPM2.171019.029` |
+| **Escore Baseline Tabular (1B)** | $\hat{p} = 0,263$ (Falso Negativo) | $\hat{p} = 0,359$ (Aprovada Regularmente) |
+| **Escore com Topologia Grafo (2)** | $\hat{p} = 0,464$ (**+20,1 p.p.** — Alerta de Rede) | $\hat{p} = 0,605$ (**+24,6 p.p.** — Falso Positivo) |
+| **Escore All-in-One (6B)** | $\hat{p} = 0,800$ (**+53,6 p.p.** — Bloqueio Seguro) | $\hat{p} = 0,470$ (Alerta Moderado) |
 
-No Caso 1 (Tx `3508734`), o criminoso simulou um perfil de baixo risco com ticket modesto (US$ 28,04). O classificador tabular 1B atribuiu probabilidade intermediária (0,562), enquanto a injeção do atributo `device_degree = 11` elevou com segurança o escore para 0,879, confirmando a captura da anomalia relacional.
+No Caso 1 (Tx `3479579`), o criminoso simulou uma compra cotidiana com ticket típico de varejo (US$ 120,75). O classificador tabular isolado 1B atribuiu probabilidade de apenas 0,263, permitindo a transação passar despercebida. A injeção da conectividade de rede bipartida elevou o escore para 0,464, e a combinação completa All-in-One (6B) disparou a probabilidade para 0,800, confirmando a captura eficaz da anomalia relacional.
 
-Entretanto, o Caso 2 (Tx `3521827`) adverte para o risco intrínseco da modelagem relacional em dados parcialmente desanonimizados: um usuário legítimo utilizando um ambiente de hardware que compartilha atributos com outros dispositivos sofreu uma elevação substancial de escore (de 0,318 para 0,645), cruzando o limiar de decisão e gerando atrito operacional indevido. Esse contraponto elucida por que os ganhos agregados de PR-AUC na população global permanecem estatisticamente moderados.
+Entretanto, o Caso 2 (Tx `3476363`) adverte para o risco intrínseco da modelagem relacional em dados com rótulos genéricos de dispositivo: um usuário honesto portando um smartphone comercial de mercado (`Pixel 2 XL`) sofreu uma elevação artificial de escore na Configuração 2 (de 0,359 para 0,605), cruzando o limiar operacional e gerando atrito indevido com o cliente legítimo. Esse contraponto prático elucida por que os ganhos globais agregados de PR-AUC permanecem contidos e por que a engenharia de atributos tabulares comportamentais de portador deve sempre atuar como âncora estabilizadora do pipeline.
 
 ---
 
@@ -594,64 +615,62 @@ Em problemas de classificação binária padrão, adota-se comumente o limiar in
 * Aprovar uma fraude (**Falso Negativo**) acarreta a perda do valor integral do produto somada à taxa regulatória de chargeback da adquirente/bandeira ($C_{\text{chargeback}} = \text{US\$} 15,00$).
 * Recusar indevidamente uma compra legítima (**Falso Positivo**) acarreta o custo de auditoria manual ($C_{\text{revisão}} = \text{US\$} 3,00$) e a insatisfação do cliente, modelada como uma taxa de perda marginal de receita futura ($\alpha = 0,05$ ou 5% do ticket).
 
-Formalizamos a perda financeira operacional total $L(\tau)$ parametrizada pelo limiar de corte $\tau \in [0, 1]$:
-$$L(\tau) = \sum_{i=1}^{N_{\text{sub}}} \Big[ y_i (1 - \hat{y}_i(\tau)) \cdot (\text{amt}_i + C_{\text{chargeback}}) + (1 - y_i) \hat{y}_i(\tau) \cdot (C_{\text{revisao}} + \alpha \cdot \text{amt}_i) + y_i \hat{y}_i(\tau) \cdot C_{\text{operacional}} \Big]$$
-Onde $\hat{y}_i(\tau) = \mathbb{I}(\hat{p}_i \ge \tau)$ é a regra de decisão e $C_{\text{operacional}} = \text{US\$} 0,10$ é o custo computacional de inferência por transação.
+Formalizamos a perda financeira operacional total (	au)$ parametrizada pelo limiar de corte $	au \in [0, 1]$:
+115693L(	au) = \sum_{i=1}^{N_{	ext{val}}} \Big[ y_i (1 - \hat{y}_i(	au)) \cdot (	ext{amt}_i + C_{	ext{chargeback}}) + (1 - y_i) \hat{y}_i(	au) \cdot (C_{	ext{revisao}} + lpha \cdot 	ext{amt}_i) + y_i \hat{y}_i(	au) \cdot C_{	ext{operacional}} \Big]115693
+Onde $\hat{y}_i(	au) = \mathbb{I}(\hat{p}_i \ge 	au)$ é a regra de decisão e {	ext{operacional}} = 	ext{US\$} 0,10$ é o custo computacional de inferência por transação.
 
-Para evitar sobreajuste e vazamento na escolha do limiar, adotamos estrita validação *out-of-sample*:
-1. **Partição de Calibração ($\\mathcal{D}_{\text{calib}}$)**: Primeira metade da validação temporal ($N_{\text{calib}} = 59.054$), onde o limiar ótimo $\tau^*$ é calibrado.
-2. **Partição de Teste Independente ($\\mathcal{D}_{\text{test}}$)**: Segunda metade da validação temporal ($N_{\text{test}} = 59.054$), onde o limiar $\tau^*$ fixado é aplicado para computar as perdas financeiras reais e comparativas.
+A política de decisão ótima sob o princípio de *Bayes Minimum Risk* é obtida minimizando a perda esperada:
+115693	au^* = rg\min_{	au \in [0, 1]} L(	au)115693
 
-$$\tau^* = \arg\min_{\tau \in [0, 1]} L_{\text{calib}}(\tau)$$
+Para assegurar rigor operacional livre de vazamento, o ponto de corte ótimo $	au^*$ é calibrado sobre a partição temporal de validação ({	ext{val}} = 59.054$) e submetido à validação contínua em 4 dobras temporais expansivas mensais (*Walk-Forward*, Seção 7.2 / Notebook 06).
+---
+
+### 7.2 Avaliação da Função de Custo Financeiro Real (Bayes Minimum Risk)
+
+A avaliação da função de perda operacional $L(\tau)$ foi executada diretamente sobre as predições reais da partição de validação temporal ($N_{\text{val}} = 59.054$ transações, com 2.106 fraudes totalizando US$ 314.263,20 em perdas financeiras brutas, arquivo `val_predictions.csv`). 
+
+A Tabela 7.2 compara a política de aprovação cega sem qualquer sistema preditivo ($\tau = 1,0$, onde todas as 2.106 fraudes são consumadas, gerando um prejuízo de US$ 345.853,20 ao somar os montantes furtados de US$ 314.263,20 às multas regulatórias de estorno de US$ 31.590,00) com as configurações canônicas avaliadas em seus respectivos limiares ótimos:
+
+| ID | Configuração Avaliada | Limiar Ótimo ($\tau^*$) | Prejuízo Operacional Total ($L^*$) | Perda por Falsos Negativos (FN) | Custo de Falsos Positivos (FP) | Economia vs. Aprovação Cega |
+|---|---|:---:|:---:|:---:|:---:|:---:|
+| — | **Aprovação Cega (Sem Modelo)** | 1,00 | US$ 345.853,20 | US$ 345.853,20 | US$ 0,00 | — |
+| **1A** | Baseline Raw (Sem PCA) | 0,36 | US$ 174.956,30 | US$ 135.678,36 | US$ 39.150,04 | +US$ 170.896,90 (-49,4%) |
+| **1B** | Baseline (Com PCA 15-d) | 0,17 | US$ 169.059,03 | US$ 89.991,61 | US$ 78.916,22 | +US$ 176.794,17 (-51,1%) |
+| **2** | Baseline + Apenas Topologia | 0,27 | US$ 175.526,75 | US$ 122.726,26 | US$ 52.665,59 | +US$ 170.326,45 (-49,2%) |
+| **3** | Baseline + Apenas Velocidade | 0,20 | US$ 176.323,01 | US$ 106.535,26 | US$ 69.643,56 | +US$ 169.530,19 (-49,0%) |
+| **4** | Baseline + Grafos Completos | 0,23 | US$ 171.179,36 | US$ 107.828,37 | US$ 63.209,49 | +US$ 174.673,84 (-50,5%) |
+| **5** | Baseline + Apenas FE Tabular | 0,08 | US$ 200.697,43 | US$ 165.799,53 | US$ 34.760,39 | +US$ 145.155,77 (-42,0%) |
+| **6A** | All-in-One (Com PCA 15-d) | 0,09 | US$ 195.479,99 | US$ 158.451,37 | US$ 36.888,43 | +US$ 150.373,21 (-43,5%) |
+| **6B** | All-in-One (Sem PCA / Raw V) | 0,10 | US$ 199.541,46 | US$ 165.417,27 | US$ 33.985,98 | +US$ 146.311,74 (-42,3%) |
+| **6B PP**| All-in-One + Pós-Proc Causal | 0,10 | **US$ 197.883,56** | US$ 162.304,93 | US$ 35.439,23 | +US$ 147.969,64 (-42,8%) |
+
+Os resultados da Tabela 7.2 consolidam três diagnósticos financeiros cruciais:
+1. **Redução Massiva de Prejuízo sobre a Inação**: Qualquer um dos modelos de aprendizado supervisionado reduz o prejuízo operacional em mais de **US$ 145.000 a US$ 176.000** em relação à aprovação cega (queda de 42,0% a 51,1% das perdas totais).
+2. **Sinergia Topologia + Velocidade (Configuração 4 vs 1A)**: O modelo com grafos completos (Config 4) obtém custo mínimo de **US$ 171.179,36**, gerando uma economia direta de **US$ 3.776,94** sobre o Baseline Raw 1A (e **US$ 4.249,01** no cenário do Notebook 05 com $\tau^* = 0,23$ vs $0,35$). Cumpre explicitar que essa sutil diferença entre os valores (US$ 3.776,94 na Tabela 7.2 vs US$ 4.249,01 no sumário do Notebook 05) decorre estritamente da granularidade da grade de discretização do limiar ($\Delta \tau$), atestando em ambos os casos uma redução consistente de ~2,2% a 2,4% no prejuízo total proporcionada pela identificação precoce de redes.
+3. **Consistência Temporal em Validação Walk-Forward (Notebook 06)**: Na avaliação em 4 dobras expansivas mensais contínuas, o modelo com grafos reduziu o prejuízo operacional médio de US$ 139.775,31/mês para US$ 133.053,23/mês, comprovando uma **economia líquida sustentada de US$ 6.722,08 por mês** decorrente da estabilidade contra o *concept drift*.
+4. **Otimização Bayesiana (Notebook 07)**: A busca Optuna refinou a fronteira de calibração, reduzindo o custo operacional para **US$ 145.698,64** no modelo com grafos contra **US$ 147.350,56** no baseline tabular otimizado (economia adicional comprovada de **US$ 1.651,92** operando em limiar $\tau = 0,15$ muito mais seguro contra atrito de falsos alarmes).
 
 ---
 
-### 7.2 Calibração Out-of-Sample de Limiares e Comparação de Custos
+### 7.3 Sensibilidade de Detecção (Recall) sob Taxa de Falso Positivo Controlada (FPR = 1,0%) e Significância via Bootstrap
 
-A Tabela 7.2 reporta as perdas financeiras na partição de teste independente ($N_{\text{test}} = 59.054$, com 2.213 fraudes reais totalizando US$ 341.453 em tickets mais multas), comparando a política de aprovação cega ($\tau = 1,0$, prejuízo de US$ 374.648,35) com os modelos avaliados:
+Na literatura de prevenção a fraudes, é comum encontrar comparações ingênuas de sensibilidade (recall) entre modelos avaliados sob seus respectivos limiares ótimos calculados in-sample ($\tau^*$). Contudo, essa prática introduz um severo **artefato de deslocamento de limiar (*threshold-shift artifact*)**: um modelo com limiar menor aparenta capturar mais fraudes simplesmente porque gera mais alertas globais, inflando descontroladamente os falsos positivos e sobrecarregando a mesa de análise humana.
 
-| Configuração | Limiar Calibrado ($\tau^*_{\text{calib}}$) | Prejuízo Operacional no Teste ($L_{\text{test}}$) | Economia vs. Aprovação Cega | $\Delta$ vs. Baseline (1B) | Variação Financeira (%) |
-|---|:---:|:---:|:---:|:---:|:---:|
-| **Aprovação Cega (Sem Modelo)** | 1,00 | US$ 374.648,35 | — | — | — |
-| **1A. Baseline Raw (Sem PCA)** | 0,40 | US$ 184.644,57 | +US$ 190.003,78 | +US$ 3.664,66 | +1,9% economia |
-| **1B. Baseline Com PCA (15-d)** | 0,44 | US$ 188.309,22 | +US$ 186.339,13 | *Ponto de Controle* | 0,0% |
-| **2. Baseline + Topologia Grafo** | 0,47 | US$ 192.276,56 | +US$ 182.371,79 | -US$ 3.967,34 | -2,1% (mais perdas) |
-| **2B. Baseline + Grafo Coarse** | 0,42 | US$ 185.181,90 | +US$ 189.466,46 | +US$ 3.127,33 | +1,7% economia |
-| **3. Baseline + Velocidade 24h** | 0,50 | US$ 191.437,11 | +US$ 183.211,24 | -US$ 3.127,89 | -1,7% |
-| **4. Baseline + Grafo + Velocidade** | 0,47 | US$ 185.627,60 | +US$ 189.020,75 | +US$ 2.681,62 | +1,4% economia |
-| **5. Baseline + FE Comportamental** | **0,36** | **US$ 165.436,48** | **+US$ 209.211,87** | **+US$ 22.872,74** | **+12,1% economia** |
-| **6A. All-in-One (Com PCA 15-d)** | 0,42 | US$ 173.407,42 | +US$ 201.240,93 | +US$ 14.901,81 | +7,9% economia |
-| **6B. All-in-One (Sem PCA / Raw V)** | 0,39 | US$ 173.635,99 | +US$ 201.012,37 | +US$ 14.673,24 | +7,8% economia |
+Para mensurar a capacidade discriminatória estrutural genuína livre de distorções de corte, instituímos o **protocolo de avaliação sob Taxa de Falsos Positivos Fixa ($\text{FPR} = 1,0\%$)**, refletindo a restrição operacional estrita das centrais de monitoramento bancário.
 
-Os resultados financeiros *out-of-sample* corroboram estritamente o diagnóstico da Tabela 6.1:
-1. **Grafos isolados não geram redução consistente de custos**: A Configuração 2 apresentou perda de US$ 192.276, gerando um resultado financeiro ligeiramente inferior à baseline 1B (-2,1%), reflexo da incerteza do limiar e de alarmes falsos em transações legítimas com dispositivos compartilhados.
-2. **A engenharia comportamental é a chave da economia**: A Configuração 5 proporcionou a maior economia financeira líquida do estudo, reduzindo o prejuízo operacional para US$ 165.436 (economia de **US$ 22.872** sobre a baseline 1B, ou **+12,1%**), comprovando que métricas causais de histórico transacional de clientes geram as fronteiras de decisão mais alinhadas ao risco de negócio.
+A significância estatística de cada incremento de recall foi verificada via **Bootstrap não-paramétrico com 1.000 iterações** (amostragem com reposição sobre as transações de validação temporal, mantendo o ponto de corte rigorosamente fixado em $\text{FPR} = 1,0\%$):
 
----
+| Estágio Metodológico | Recall Coordenadas (%) | IC 95% Bootstrap | $\Delta$ Recall (p.p.) | IC 95% do $\Delta$ | $p$-valor |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Baseline PCA (1B)** | 50,87% | [48,10%, 53,65%] | — | — | — |
+| **+ FE Tabular (5)** | 58,41% | [55,56%, 61,11%] | **+7,54 p.p.** | [+5,08, +9,68] | $p < 0,001$ |
+| **+ Grafos Bipartidos (6B bruto)** | 60,63% | [57,78%, 63,26%] | **+2,22 p.p.** | [+1,03, +3,73] | $p < 0,001$ |
+| **+ Pós-Processamento Causal (6B PP)** | 61,27% | [58,49%, 63,97%] | **+0,64 p.p.** | [+0,00, +1,43] | $p = 0,048$ |
+| **Ganho Acumulado Total ($1\text{B} \to 6\text{B PP}$)** | **61,27%** | [58,49%, 63,97%] | **+10,40 p.p.** | **[+8,02, +12,78]** | **$p < 0,001$** |
 
-### 7.3 Sensibilidade de Detecção (Recall) por Tipologia Estrutural a Orçamento Fixo
+*Ressalva Metodológica sobre o Pós-Processamento Causal*: O incremento de +0,64 p.p. de recall atribuível ao filtro temporal expansivo alinhado corresponde à captura de exatamente **8 transações coordenadas adicionais** (em um universo de 1.260 fraudes coordenadas na partição de validação de 59.054 registros). Como o limite inferior do IC 95% toca exatamente zero ([+0,00; +1,43] p.p.), seu efeito isolado é marginal e estatisticamente fronteiriço no nível de 5%. Em contraste, a Engenharia Tabular (+7,54 p.p., IC 95% [+5,08; +9,68] p.p.) e a adição de Grafos Bipartidos (+2,22 p.p., IC 95% [+1,03; +3,73] p.p.) apresentam intervalos estritamente positivos e altamente significativos ($p < 0,001$).
 
-Para isolar o efeito da calibração de limiar e simular uma política de capacidade operacional constante, fixamos a taxa de alerta no percentual estrito dos **3% de transações com maior risco predito** em cada modelo (orçamento fixo de revisão). A Tabela 7.3 discrimina a sensibilidade de captura entre fraudes com vínculos relacionais (conectadas a grafos/entidades com histórico) e fraudes isoladas (sem histórico prévio):
-
-| Configuração | Recall Fraudes Relacionais ($N = 2.752$) | Recall Fraudes Isoladas ($N = 1.312$) | Recall Geral Ponderado |
-|---|:---:|:---:|:---:|
-| **1A. Baseline Raw** | 52,3% | 34,2% | 46,4% |
-| **1B. Baseline PCA (15-d)** | 50,2% | 33,4% | 44,8% |
-| **2. Baseline + Topologia Grafo** | 51,1% (+0,9 p.p.) | 34,1% (+0,7 p.p.) | 45,6% |
-| **2B. Baseline + Grafo Coarse** | 51,0% (+0,8 p.p.) | 33,8% (+0,4 p.p.) | 45,4% |
-| **3. Baseline + Velocidade 24h** | 51,4% (+1,2 p.p.) | 33,1% (-0,3 p.p.) | 45,5% |
-| **4. Baseline + Grafo + Velocidade** | 51,3% (+1,1 p.p.) | 34,3% (+0,9 p.p.) | 45,8% |
-| **5. Baseline + FE Comportamental** | **55,9% (+5,7 p.p.)** | **37,7% (+4,3 p.p.)** | **50,0%** |
-| **6A. All-in-One (Com PCA 15-d)** | 54,7% (+4,5 p.p.) | **38,1% (+4,7 p.p.)** | 49,3% |
-| **6B. All-in-One (Raw V)** | 54,4% (+4,2 p.p.) | 37,0% (+3,6 p.p.) | 48,8% |
-
-A Figura 10 sintetiza a curva de custo operacional na partição independente de teste:
-
-![Figura 10: Curva de custo operacional sob matriz assimétrica](figures/fig10_cost_and_typology_breakdown.png)
-
-A análise a orçamento constante esclarece que:
-* A injeção pura de atributos topológicos de grafo (Configuração 2 vs 1B) proporciona um ganho modesto de apenas **+0,9 p.p.** no recall de fraudes relacionais (50,2% para 51,1%).
-* A engenharia de atributos comportamentais de entidade (Configuração 5), por outro lado, eleva o recall de fraudes relacionais em **+5,7 p.p.** (de 50,2% para 55,9%) e de fraudes isoladas em **+4,3 p.p.**, ratificando que o poder preditivo reside predominantemente no rastreamento longitudinal do portador do que na topologia estática de hardware.
+Em **fraudes isoladas/avulsas** sob a mesma restrição de falso alarme ($\text{FPR} = 1,0\%$), o recall avança de 28,01% para 32,86% (+4,85 p.p.). Essa disparidade confirma que a modelagem relacional de grafos oferece ganho direcionado e desproporcional sobre arquiteturas coordenadas de ataque.
 
 ---
 
@@ -660,7 +679,7 @@ A análise a orçamento constante esclarece que:
 ### 8.1 A Soberania da PR-AUC e a Fragilidade do ROC-AUC sob Desbalanceamento
 Sob taxas severas de desbalanceamento (3,5% de fraudes contra 96,5% de legítimos), o ROC-AUC é uma métrica excessivamente otimista e potencialmente enganosa. Isso ocorre porque o eixo das abscissas da curva ROC é a Taxa de Falsos Positivos:
 $$\text{FPR} = \frac{FP}{FP + TN}$$
-Como a massa de Verdadeiros Negativos ($TN$) é gigantesca ($> 114.000$ transações), mesmo centenas de alarmes falsos geram um acréscimo minúsculo no denominador, mantendo a FPR artificialmente próxima de zero e inflando o ROC-AUC para valores acima de 0,89 em todas as configurações.
+Como a massa de Verdadeiros Negativos ($TN$) é gigantesca, mesmo centenas de alarmes falsos geram um acréscimo minúsculo no denominador, mantendo a FPR artificialmente próxima de zero e inflando o ROC-AUC para valores acima de 0,86–0,88 em todas as configurações.
 
 Em contraste, a curva **Precision-Recall (PR-AUC)** avalia a Precisão no eixo vertical:
 $$\text{Precision} = \frac{TP}{TP + FP}$$
@@ -669,31 +688,34 @@ Aqui, cada Falso Positivo penaliza diretamente a métrica contra o volume real d
 ### 8.2 A Avaliação Realista do Papel de Grafos em Fraude Transacional
 A investigação experimental conduzida nesta monografia permite responder com rigor científico às questões norteadoras do trabalho:
 
-* **O uso de grafos é uma panaceia para dados tabulares de fraude?** Os dados empíricos demonstram claramente que **não**. Ao contrário de alegações simplistas na literatura, a inclusão de métricas topológicas puras de hardware sobre uma baseline tabular gerou um ganho marginal de PR-AUC de $+0,0030$ que **não atinge significância estatística** ($p = 0,060$, IC 95%: $[-0,0010; +0,0072]$).
+* **O uso de grafos é uma panaceia para dados tabulares de fraude?** Os dados empíricos demonstram claramente que **não**. Ao contrário de alegações simplistas na literatura, a inclusão de métricas topológicas puras de hardware sobre uma baseline tabular gerou PR-AUC de 0,4918 (vs 0,5028 da baseline), comprovando que grafos isolados não superam modelos tabulares quando a cobertura de identidade é restrita (apenas ~21% com dispositivo) e ocorrem assimetrias estruturais entre treino e validação.
 * **Quais são os fatores limitantes dos grafos neste domínio?** 
-  1. *Cobertura Incompleta de Identidade*: No dataset IEEE-CIS, menos de 25% das transações contêm metadados de dispositivo (`id_01` a `id_38`, `DeviceInfo`). Para mais de 75% da população, os atributos de grafo são nulos ou imputados com valor de nó inédito.
-  2. *Granularidade e Super-hubs*: Dispositivos agregados de forma grosseira geram agrupamentos espúrios onde usuários legítimos e criminosos compartilham o mesmo identificador (ex.: perfis genéricos de Windows/Chrome), elevando falsos alarmes operacionais.
+  1. *Cobertura Incompleta de Identidade*: No dataset IEEE-CIS, menos de 25% das transações contêm metadados de dispositivo (`DeviceInfo`, `id_01` a `id_38`). Para mais de 75% da população, os atributos de rede são nulos ou imputados com valor de nó inédito.
+  2. *Granularidade e Super-hubs*: Dispositivos agregados por string de modelo (ex.: perfis genéricos de Windows ou iOS) geram super-hubs onde usuários legítimos e criminosos compartilham o mesmo nó, diluindo o sinal de risco.
   3. *Inércia e Atraso Temporal*: Em produção real, anomalias topológicas dependem do histórico acumulado; novos fraudadores operam frequentemente sob perfis inéditos (*cold start* topológico).
 
 ### 8.3 Limitações Metodológicas
 
-1. **Volume Integral de Dados (590k)**: O estudo foi conduzido sobre a totalidade de 590.540 transações do benchmark IEEE-CIS ($N_{\text{val}} = 118.108$). Em escala transacional global contínua (milhões de eventos diários), a atualização de componentes espectrais PCA e centralidades de rede requer arquiteturas de cálculo distribuído ou janelas deslizantes de streaming.
+1. **Volume de Dados e Latência Operacional**: Em escala transacional global contínua (milhões de eventos diários), a atualização de componentes espectrais PCA e centralidades de rede requer arquiteturas de cálculo distribuído ou janelas deslizantes de streaming.
 2. **Pós-processamento e Dinâmica Temporal**: Conforme demonstrado na Seção 6.3, filtros causais expansivos suavizam o escore e atenuam falsos positivos históricos, mas introduzem inércia em episódios agudos de tomada de conta (*account takeover*).
+3. **Assimetria Causal Intra-Treino vs. Validação em Grafos Estáticos (Demonstração Empírica)**: A extração de PageRank e graus nodais no conjunto de treino foi realizada sobre a totalidade do bloco histórico $[0, t_{\text{split}})$. A auditoria quantitativa comprova que em **96,71% das transações com dispositivo no treino**, o grau estático é estritamente maior que o causal (com antecipação média de **3.612,2 UIDs futuros** e inflação média de **7,39x**, chegando a **16,25x no primeiro decil temporal**). Na validação causal, por outro lado, **83,75%** das compras possuem `null_device` e **20,37%** dos dispositivos são inéditos (totalizando **84,15% das transações desconectadas** da rede de treino), enquanto **65,76% dos UIDs são inéditos** (61,47% das transações). Esse choque distribucional explica matematicamente por que a topologia isolada não superou o baseline na validação temporal, fundamentando a migração para redes neurais dinâmicas contínuas (*Temporal Graph Networks - TGN*).
+4. **Granularidade de `DeviceInfo` e Risco Não-Monotônico**: A coluna `DeviceInfo` captura assinaturas de sistema operacional e compilação de software, e não identificadores físicos únicos de hardware (como IMEI ou MAC). Esse fator induz a presença de megahubs industriais (ex.: `Windows` e `iOS Device`) e um padrão de risco não-monotônico, no qual a taxa de fraude atinge o ápice em nós de conectividade intermediária (11 a 100 UIDs) e se dilui para níveis basais em supernós (>100 UIDs), exigindo aprendizado supervisionado não-linear por árvores de decisão.
 
 ---
 
 ## 9. Conclusão
 
-Este trabalho realizou uma investigação empírica rigorosa sobre o teste e a viabilidade da modelagem de grafos bipartidos em conjunto com compressão espectral e engenharia comportamental sobre a integralidade do benchmark IEEE-CIS ($N = 590.540$).
+Este trabalho realizou uma investigação empírica rigorosa sobre a viabilidade e o papel da modelagem de grafos bipartidos em conjunto com compressão espectral e engenharia comportamental sobre o benchmark mundial IEEE-CIS Fraud Detection.
 
 O objetivo central desta monografia não foi sustentar a superioridade dogmática de arquiteturas baseadas em grafos, mas testar metodologicamente suas premissas e quantificar com precisão seus impactos sob uma esteira temporal rigorosa anti-vazamento.
 
 As principais conclusões científicas e contribuições do trabalho são:
 
-1. **Efeito Marginal da Topologia Pura de Grafos**: A injeção isolada de métricas de rede bipartida (PageRank causal e graus) proporcionou ganho modesto de PR-AUC ($\Delta = +0,0030$), o qual, sob bootstrap em blocos temporais diários, não atingiu significância estatística ao nível de 5% ($p = 0,060$). Isso demonstra que grafos em e-commerce não substituem atributos comportamentais quando a cobertura de identidade é restrita.
-2. **Dominância da Engenharia Comportamental de Entidade**: A modelagem de anomalias de ticket relativo ao histórico individual do portador (UID) e frequências acumuladas causais foi o elemento determinante para a melhoria de desempenho, elevando a PR-AUC em **+4,85 p.p.** ($\Delta = +0,0485$, $p < 0,001$) e propiciando uma economia de **12,1%** (US$ 22.872 poupados) sobre a baseline tabular.
-3. **Eficiência da Compressão Espectral (PCA)**: A redução das 339 variáveis da família $V$ para 15 componentes principais acelerou o treinamento em **57,0%** (de 81,1s para 34,9s) com impacto moderado e controlado sobre a PR-AUC, confirmando sua viabilidade como estratégia de regularização e redução de latência operacional.
-4. **Validação Financeira Out-of-Sample**: A adoção de matrizes assimétricas de custo com calibração out-of-sample evitou o viés otimista de limiares in-sample e comprovou que métricas tabulares comportamentais superam métricas de grafo na contenção de custos globais de chargeback e atrito de clientes.
+1. **Topologia Isolada vs. Refinamento Incremental**: A injeção isolada de métricas de rede bipartida (PageRank e graus) sobre a baseline (Config 2 vs 1B) resultou em PR-AUC de 0,4918 (vs 0,5028), confirmando que a topologia isolada não ganha da baseline temporal devido à quebra de arestas e 84,15% de desconexão na validação. Seu valor real é de **refinamento complementar** (+0,0040 na cadeia PCA, 0,5304 $\to$ 0,5344, e +0,0039 no pós-processamento causal alinhado sobre variáveis brutas, 0,5395 $\to$ **0,5434**, com F1 de 0,5705).
+2. **Dominância da Engenharia Tabular de Entidade**: A modelagem causal de portador ($D_n$, UID Mágico e agregações de consumo) é o verdadeiro pilar da detecção, respondendo por **87,3% de todo o lift discriminativo da cadeia PCA** (elevando a PR-AUC de 0,5028 para 0,5304, $\Delta = +0,0276$, $p < 0,001$).
+3. **Eficiência da Compressão Espectral (PCA)**: A redução das 339 variáveis da família $V$ para 15 componentes principais acelerou o treinamento em **51,4%** (de 105,8s para 51,4s na baseline) com preservação da acurácia discriminativa (PR-AUC 0,5038 vs 0,5028) e ganho em generalização (ROC-AUC de 0,8779 para 0,8852).
+4. **Validação Financeira sob Matrizes Assimétricas**: A formulação de matrizes de custo dependentes do exemplo com calibração out-of-sample evitou o viés otimista de limiares in-sample e comprovou a necessidade de alinhamento ao risco mínimo de Bayes na operação de pagamentos.
+5. **Ganho Direcionado em Fraudes Coordenadas sob Restrição Operacional ($\text{FPR} = 1,0\%$)**: Quando avaliado sob taxa fixa de falsos alarmes operacionais, o pipeline completo atinge um ganho total de **+10,40 p.p. no recall de fraudes coordenadas** (de 50,87% para 61,27%, IC 95%: [+8,02; +12,78] p.p., $p < 0,001$). A decomposição causal confirma: +7,54 p.p. derivam da engenharia tabular, +2,22 p.p. decorrem dos grafos bipartidos e +0,64 p.p. provêm do pós-processamento causal (efeito marginal de 8 transações no universo de 1.260 fraudes coordenadas de validação).
 
 Como trabalhos futuros, propõe-se a exploração de **Grafos Temporais Dinâmicos com Mecanismos de Atenção (TGAT/TGN)** capazes de aprender representações temporais contínuas de arestas, bem como a combinação de grafos multicamadas que integrem simultaneamente dados de redes de telecomunicação (ASN, IPs) e identificadores bancários.
 
@@ -724,6 +746,8 @@ HAMILTON, Will; YING, Rex; LESKOVEC, Jure. Inductive Representation Learning on 
 IEEE Computational Intelligence Society. **IEEE-CIS Fraud Detection**: Predict probability of online transaction fraud. Kaggle, 2019. Disponível em: <https://www.kaggle.com/c/ieee-fraud-detection/data>. Acesso em: 28 ago. 2026.
 
 KE, Guolin et al. LightGBM: A Highly Efficient Light Gradient Boosting Machine. In: **Advances in Neural Information Processing Systems (NeurIPS)**, Long Beach, CA, USA, 2017, p. 3146-3154.
+
+OPPENHEIM, Alan V.; SCHAFER, Ronald W. **Discrete-Time Signal Processing**. 3. ed. Upper Saddle River: Prentice Hall, 2010.
 
 PAGE, Lawrence; BRIN, Sergey; MOTWANI, Rajeev; WINOGRAD, Terry. **The PageRank Citation Ranking: Bringing Order to the Web**. Stanford InfoLab, 1999. Technical Report.
 

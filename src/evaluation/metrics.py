@@ -248,7 +248,7 @@ def save_metrics(metrics: dict, path: str | Path = "results/baseline_metrics.jso
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w") as f:
-        json.dump(metrics, f, indent=2)
+        json.dump(metrics, f, indent=2, default=str)
     print(f"[eval] metrics saved → {path}")
 
 

@@ -1,0 +1,9 @@
+ID,Configuração,Features (A/B),PR-AUC (Bruto),ROC-AUC (Bruto),F1 (Bruto),PR-AUC (Pós-Proc),F1 (Pós-Proc),Tempo (s)
+1A,Baseline Raw (Sem PCA),391 / 430,0.5038,0.8779,0.5061,0.5034,0.5095,105.8s
+1B,Baseline (Com PCA 15-d),67 / 106,0.5028,0.8852,0.4979,0.5016,0.5023,51.4s
+2,Baseline + Apenas Topologia,70 / 109,0.4918,0.8827,0.4917,0.4906,0.4984,51.9s
+3,Baseline + Apenas Velocidade,68 / 107,0.4943,0.8822,0.4936,0.4922,0.4957,51.0s
+4,Baseline + Grafos Completos,71 / 110,0.4997,0.8822,0.4983,0.4980,0.5093,52.5s
+5,Baseline + Apenas FE Tabular,81 / 120,0.5304,0.8622,0.5443,0.5299,0.5472,60.5s
+6A,All-in-One (Com PCA 15-d),86 / 125,0.5344,0.8715,0.5481,0.5329,0.5524,63.2s
+6B,All-in-One (Sem PCA / Raw V),410 / 449,0.5395,0.8649,0.5646,0.5434,0.5705,118.4s

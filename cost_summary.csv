@@ -1,0 +1,7 @@
+ID,Modelo,Limiar Ótimo (τ*),Prejuízo Mínimo ($),Economia vs Baseline ($),Redução do Prejuízo (%)
+1B,Baseline (Com PCA 15-d),0.17,"$168,434.16",$0.00,+0.00%
+2,Baseline + Apenas Topologia,0.27,"$175,845.40","$-7,411.24",-4.40%
+3,Baseline + Apenas Velocidade,0.20,"$176,175.30","$-7,741.14",-4.60%
+4,Baseline + Grafos Completos,0.23,"$171,183.63","$-2,749.47",-1.63%
+5,Baseline + Apenas FE Tabular,0.08,"$201,841.03","$-33,406.87",-19.83%
+6A,All-in-One (Com PCA 15-d),0.09,"$194,936.41","$-26,502.25",-15.73%
